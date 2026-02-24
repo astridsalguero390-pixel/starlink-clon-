@@ -10,6 +10,7 @@ interface Plan {
     monthlyEquiv?: string;
     savings?: string;
     bonus?: string;
+    chipNote?: string;
     benefits: string[];
     highlight?: boolean;
 }
@@ -17,20 +18,10 @@ interface Plan {
 const plansByCountry: Record<CountryCode, Plan[]> = {
     EC: [
         {
-            name: "Chip de Activación",
-            price: "$27.50",
-            period: "pago único",
-            benefits: [
-                "Chip SIM satelital Starlink",
-                "Activación inmediata",
-                "Selección o portabilidad de número",
-                "Compatible con cualquier celular liberado",
-            ],
-        },
-        {
             name: "Plan Mensual",
             price: "$15.50",
             period: "/mes",
+            chipNote: "+ $27.50 chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -78,20 +69,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
     ],
     HN: [
         {
-            name: "Chip de Activación",
-            price: "$27.50",
-            period: "pago único",
-            benefits: [
-                "Chip SIM satelital Starlink",
-                "Activación inmediata",
-                "Selección o portabilidad de número",
-                "Compatible con cualquier celular liberado",
-            ],
-        },
-        {
             name: "Plan Mensual",
             price: "$15.50",
             period: "/mes",
+            chipNote: "+ $27.50 chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -142,20 +123,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
     ],
     PE: [
         {
-            name: "Chip de Activación",
-            price: "70 S/.",
-            period: "pago único",
-            benefits: [
-                "Chip SIM satelital Starlink",
-                "Activación inmediata",
-                "Selección o portabilidad de número",
-                "Compatible con cualquier celular liberado",
-            ],
-        },
-        {
             name: "Plan 1 Mes",
             price: "80 S/.",
             period: "/mes",
+            chipNote: "+ 70 S/. chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -217,20 +188,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
     ],
     CO: [
         {
-            name: "Chip de Activación",
-            price: "$27.50",
-            period: "pago único",
-            benefits: [
-                "Chip SIM satelital Starlink",
-                "Activación inmediata",
-                "Selección o portabilidad de número",
-                "Compatible con cualquier celular liberado",
-            ],
-        },
-        {
             name: "Plan Mensual",
             price: "$15.50",
             period: "/mes",
+            chipNote: "+ $27.50 chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -339,6 +300,12 @@ const PlansSection = () => {
                                         <span className="text-muted-foreground text-sm mb-1">{plan.period}</span>
                                     )}
                                 </div>
+
+                                {plan.chipNote && (
+                                    <p className="text-muted-foreground text-[11px] leading-tight -mt-1 border border-border/60 rounded px-2 py-1 w-fit">
+                                        🔑 {plan.chipNote}
+                                    </p>
+                                )}
 
                                 <div className="flex flex-col gap-1">
                                     {plan.monthlyEquiv && (
