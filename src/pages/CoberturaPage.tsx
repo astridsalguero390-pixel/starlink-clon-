@@ -21,6 +21,11 @@ const mapConfig: Record<CountryCode, { src: string; zoom: number; center: string
         zoom: 5,
         center: "Perú",
     },
+    CO: {
+        src: "https://maps.google.com/maps?q=Colombia&t=k&z=6&ie=UTF8&output=embed",
+        zoom: 6,
+        center: "Colombia",
+    },
 };
 
 const CoberturaPage = () => {

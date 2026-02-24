@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 
-export type CountryCode = "EC" | "HN" | "PE";
+export type CountryCode = "EC" | "HN" | "PE" | "CO";
 
 const STORAGE_KEY = "starlink_country";
-const SUPPORTED: CountryCode[] = ["EC", "HN", "PE"];
+const SUPPORTED: CountryCode[] = ["EC", "HN", "PE", "CO"];
 const DEFAULT_COUNTRY: CountryCode = "HN";
 
 async function detectCountry(): Promise<CountryCode> {

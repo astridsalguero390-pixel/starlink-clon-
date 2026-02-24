@@ -3,7 +3,7 @@ import { useCountryContext, countryNames, countryFlags } from "./CountryContext"
 import { CountryCode } from "@/hooks/useCountry";
 import { ChevronDown } from "lucide-react";
 
-const countries: CountryCode[] = ["EC", "HN", "PE"];
+const countries: CountryCode[] = ["EC", "HN", "PE", "CO"];
 
 const CountryBanner = () => {
     const { country, setCountry } = useCountryContext();

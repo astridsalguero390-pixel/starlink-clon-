@@ -26,10 +26,12 @@ export const countryNames: Record<CountryCode, string> = {
     EC: "Ecuador",
     HN: "Honduras",
     PE: "Perú",
+    CO: "Colombia",
 };
 
 export const countryFlags: Record<CountryCode, string> = {
     EC: "🇪🇨",
     HN: "🇭🇳",
     PE: "🇵🇪",
+    CO: "🇨🇴",
 };

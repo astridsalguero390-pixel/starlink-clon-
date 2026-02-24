@@ -215,6 +215,70 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
             ],
         },
     ],
+    CO: [
+        {
+            name: "Chip de Activación",
+            price: "$27.50",
+            period: "pago único",
+            benefits: [
+                "Chip SIM satelital Starlink",
+                "Activación inmediata",
+                "Selección o portabilidad de número",
+                "Compatible con cualquier celular liberado",
+            ],
+        },
+        {
+            name: "Plan Mensual",
+            price: "$15.50",
+            period: "/mes",
+            benefits: [
+                "✅ Internet ilimitado",
+                "✅ Señal estable donde sea",
+                "✅ Llamadas y mensajes",
+                "✅ Ideal para probar el servicio",
+            ],
+        },
+        {
+            name: "Plan 6 Meses",
+            price: "$49",
+            period: "",
+            monthlyEquiv: "Solo $8.17/mes",
+            savings: "Ahorras $44",
+            bonus: "🎁 +2 meses GRATIS",
+            benefits: [
+                "✅ Internet + llamadas + mensajes ilimitados",
+                "✅ Señal satelital en todo el país",
+                "✅ Pagas una vez y te olvidas de recargar",
+            ],
+            highlight: true,
+        },
+        {
+            name: "Plan Anual",
+            price: "$85",
+            period: "",
+            monthlyEquiv: "Solo $7.08/mes",
+            savings: "Ahorras $101",
+            bonus: "🎁 +3 meses GRATIS",
+            benefits: [
+                "✅ Internet, llamadas y mensajes ilimitados",
+                "✅ Conexión continua todo el año",
+                "✅ Sin pagos mensuales",
+            ],
+        },
+        {
+            name: "Plan 2 Años",
+            price: "$135",
+            period: "",
+            monthlyEquiv: "Solo $5.62/mes",
+            savings: "Máximo ahorro",
+            bonus: "🎁 +4 meses GRATIS",
+            benefits: [
+                "✅ Internet, llamadas y mensajes ilimitados",
+                "✅ Conexión garantizada por 24 meses",
+                "✅ Sin pagos mensuales",
+            ],
+        },
+    ],
 };
 
 const PlansSection = () => {

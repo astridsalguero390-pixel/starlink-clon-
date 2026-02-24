@@ -86,6 +86,27 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
             idealFor: ["Hogar principal", "Oficinas", "Streaming 4K", "Videollamadas y gaming"],
         },
     ],
+    CO: [
+        {
+            name: "STARLINK MINI",
+            price: "$180",
+            tag: "Incluye 1 año de servicio GRATIS",
+            includes: ["Antena satelital compacta", "Router Wi-Fi integrado", "Base/soporte", "Cables y fuente de poder"],
+            benefits: ["Muy portátil y ligera", "Instalación rápida (plug & play)", "Bajo consumo de energía", "Velocidades 350–400 Mbps"],
+            devices: "Hasta 128 dispositivos",
+            coverage: "~100–120 m²",
+            idealFor: ["Casa pequeña", "Campo y viajes", "Streaming HD", "Trabajo remoto básico"],
+        },
+        {
+            name: "STARLINK ESTÁNDAR",
+            price: "$250",
+            includes: ["Antena satelital", "Router Wi-Fi 6 (más potente)", "Base/soporte", "Cables y fuente de poder"],
+            benefits: ["Señal más estable", "Mayor cobertura Wi-Fi", "Mejor rendimiento con muchos dispositivos", "Hasta 700 Mbps"],
+            devices: "Hasta 235 dispositivos",
+            coverage: "~250–300 m²",
+            idealFor: ["Hogar principal", "Oficinas", "Streaming 4K", "Videollamadas y gaming"],
+        },
+    ],
 };
 
 const internetPlans: InternetPlan[] = [
