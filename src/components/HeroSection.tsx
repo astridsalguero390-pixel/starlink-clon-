@@ -1,7 +1,12 @@
 import heroImage from "@/assets/hero-starlink.jpg";
-import { Play } from "lucide-react";
+import { Play, ShoppingCart, FileText, Package, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const [buyOpen, setBuyOpen] = useState(false);
+  const navigate = useNavigate();
+
   return (
     <section className="relative w-full h-screen min-h-[700px] overflow-hidden">
       <img
@@ -10,42 +15,102 @@ const HeroSection = () => {
         className="absolute inset-0 w-full h-full object-cover"
         loading="eager"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
-        <h1 className="text-foreground text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight opacity-0 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+        <h1
+          className="text-foreground text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight opacity-0 animate-fade-in-up"
+          style={{ animationDelay: "0.2s" }}
+        >
           INTERNET DE ALTA VELOCIDAD
           <br />
           DESDE EL ESPACIO
         </h1>
 
-        <p className="text-muted-foreground text-base sm:text-lg md:text-xl mt-6 max-w-xl font-light opacity-0 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
+        <p
+          className="text-muted-foreground text-base sm:text-lg md:text-xl mt-6 max-w-xl font-light opacity-0 animate-fade-in-up"
+          style={{ animationDelay: "0.5s" }}
+        >
           Conéctate en casa o en movimiento
           <br />
-          Consulta las <span className="text-foreground font-medium underline underline-offset-4 cursor-pointer">velocidades</span> en tu país
+          Señal satelital donde otros no llegan
         </p>
 
-        <button className="flex items-center gap-2 mt-8 text-foreground text-xs tracking-[0.2em] font-semibold opacity-0 animate-fade-in-up hover:text-muted-foreground transition-colors" style={{ animationDelay: "0.8s" }}>
+        <button
+          className="flex items-center gap-2 mt-8 text-foreground text-xs tracking-[0.2em] font-semibold opacity-0 animate-fade-in-up hover:text-muted-foreground transition-colors"
+          style={{ animationDelay: "0.8s" }}
+        >
           VER AHORA
           <Play size={18} className="fill-foreground" />
         </button>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent pt-20 pb-8">
-        <div className="max-w-md mx-auto px-6">
-          <div className="flex gap-0">
-            <input
-              type="text"
-              placeholder="Dirección de servicio"
-              className="flex-1 bg-card border border-border rounded-l px-4 py-3 text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-foreground/30 transition-colors"
-            />
-            <button className="bg-foreground text-background px-6 py-3 rounded-r text-sm font-semibold tracking-wider shrink-0 hover:bg-foreground/90 transition-colors">
-              COMENZAR
+      {/* Bottom CTA bar */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-background via-background/90 to-transparent pt-20 pb-8">
+        <div className="max-w-2xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
+            {/* COMPRAR SERVICIO */}
+            <div className="relative">
+              <button
+                onClick={() => setBuyOpen((o) => !o)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-foreground text-background px-6 py-3 rounded text-sm font-semibold tracking-wider hover:bg-foreground/90 transition-colors"
+              >
+                <ShoppingCart size={16} />
+                COMPRAR SERVICIO
+                <ChevronDown size={14} className={`transition-transform ${buyOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {buyOpen && (
+                <div
+                  className="absolute bottom-14 left-0 sm:left-1/2 sm:-translate-x-1/2 bg-card border border-border rounded-lg shadow-xl z-50 min-w-[220px] overflow-hidden"
+                  onMouseLeave={() => setBuyOpen(false)}
+                >
+                  <Link
+                    to="/satelital"
+                    onClick={() => setBuyOpen(false)}
+                    className="flex items-center gap-3 px-5 py-4 hover:bg-border transition-colors border-b border-border"
+                  >
+                    <span className="text-xl">📱</span>
+                    <div className="text-left">
+                      <p className="text-foreground text-sm font-semibold">Móvil — SIM Card</p>
+                      <p className="text-muted-foreground text-xs">Llamadas, SMS e internet</p>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/antena"
+                    onClick={() => setBuyOpen(false)}
+                    className="flex items-center gap-3 px-5 py-4 hover:bg-border transition-colors"
+                  >
+                    <span className="text-xl">📡</span>
+                    <div className="text-left">
+                      <p className="text-foreground text-sm font-semibold">Satelital — Antena</p>
+                      <p className="text-muted-foreground text-xs">Internet de alta velocidad</p>
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* VERIFICAR CONTRATO */}
+            <button
+              onClick={() => navigate("/verificar-contrato")}
+              className="flex items-center justify-center gap-2 border border-foreground/40 text-foreground px-6 py-3 rounded text-sm font-semibold tracking-wider hover:bg-foreground/10 transition-colors"
+            >
+              <FileText size={16} />
+              VERIFICAR CONTRATO
             </button>
+
+            {/* ESTADO DEL PEDIDO */}
+            <button
+              onClick={() => navigate("/estado-pedido")}
+              className="flex items-center justify-center gap-2 border border-foreground/40 text-foreground px-6 py-3 rounded text-sm font-semibold tracking-wider hover:bg-foreground/10 transition-colors"
+            >
+              <Package size={16} />
+              ESTADO DEL PEDIDO
+            </button>
+
           </div>
-          <a href="#cobertura" className="flex items-center justify-center gap-1 mt-3 text-muted-foreground text-xs tracking-wider hover:text-foreground transition-colors">
-            Ver mapa de disponibilidad y velocidades ›
-          </a>
         </div>
       </div>
     </section>

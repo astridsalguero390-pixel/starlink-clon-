@@ -5,6 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import SatelitalPage from "./pages/SatelitalPage";
+import AntenaPage from "./pages/AntenaPage";
+import VerificarContratoPage from "./pages/VerificarContratoPage";
+import EstadoPedidoPage from "./pages/EstadoPedidoPage";
+import CoberturaPage from "./pages/CoberturaPage";
+import AdminPage from "./pages/AdminPage";
+import { CountryProvider } from "./components/CountryContext";
+import SocialProof from "./components/SocialProof";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +22,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <CountryProvider>
+          <SocialProof />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/satelital" element={<SatelitalPage />} />
+            <Route path="/antena" element={<AntenaPage />} />
+            <Route path="/verificar-contrato" element={<VerificarContratoPage />} />
+            <Route path="/estado-pedido" element={<EstadoPedidoPage />} />
+            <Route path="/cobertura" element={<CoberturaPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </CountryProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
