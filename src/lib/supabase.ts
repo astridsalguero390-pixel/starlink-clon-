@@ -23,6 +23,7 @@ export interface Contrato {
     numero_sim?: string;
     fecha_compra: string;
     notas?: string;
+    estado_pago: "pendiente" | "activo";
     created_at: string;
 }
 

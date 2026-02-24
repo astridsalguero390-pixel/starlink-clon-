@@ -6,7 +6,7 @@ import { Search, FileText, Phone, Mail, MapPin, Calendar, Tag, CreditCard } from
 import SEO from "@/components/SEO";
 
 const tipoLabel: Record<string, string> = { sim: "📱 SIM Card Satelital", antena: "📡 Antena Starlink" };
-const paisLabel: Record<string, string> = { EC: "🇪🇨 Ecuador", HN: "🇭🇳 Honduras", PE: "🇵🇪 Perú" };
+const paisLabel: Record<string, string> = { EC: "🇪🇨 Ecuador", HN: "🇭🇳 Honduras", PE: "🇵🇪 Perú", CO: "🇨🇴 Colombia" };
 
 const Row = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string }) =>
     value ? (
@@ -101,18 +101,35 @@ const VerificarContratoPage = () => {
                 {/* Contrato result */}
                 {contrato && (
                     <div className="bg-card border border-border rounded-lg overflow-hidden">
-                        {/* Badge header */}
-                        <div className="bg-foreground/5 border-b border-border px-6 py-4 flex items-center justify-between">
+
+                        {/* Estado de pago — banner prominente */}
+                        {contrato.estado_pago === "activo" ? (
+                            <div className="bg-green-500/10 border-b border-green-500/30 px-6 py-4 flex items-center gap-3">
+                                <span className="text-2xl">✅</span>
+                                <div>
+                                    <p className="text-green-300 font-bold text-base tracking-wide">PLAN ACTIVO</p>
+                                    <p className="text-green-400/80 text-xs mt-0.5">Tu servicio Starlink está activo y funcionando.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-6 py-4 flex items-center gap-3">
+                                <span className="text-2xl">⚠️</span>
+                                <div>
+                                    <p className="text-yellow-300 font-bold text-base tracking-wide">PAGO PENDIENTE</p>
+                                    <p className="text-yellow-400/80 text-xs mt-0.5">Tu plan se activará una vez confirmemos el pago.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Contrato header */}
+                        <div className="bg-foreground/5 border-b border-border px-6 py-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <FileText size={20} className="text-foreground" />
+                                <FileText size={18} className="text-foreground" />
                                 <div>
                                     <p className="text-foreground font-bold tracking-widest text-sm">{contrato.numero_contrato}</p>
                                     <p className="text-muted-foreground text-xs">{tipoLabel[contrato.tipo_servicio]}</p>
                                 </div>
                             </div>
-                            <span className="bg-foreground text-background text-[11px] font-bold tracking-widest px-3 py-1 rounded-full uppercase">
-                                Activo
-                            </span>
                         </div>
 
                         {/* Data rows */}
