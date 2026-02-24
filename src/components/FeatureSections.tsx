@@ -11,53 +11,52 @@ interface Feature {
   description: string;
   link?: { text: string; href: string };
   steps?: { num: string; text: string }[];
-  appLinks?: { android: string; ios: string };
 }
 
 const features: Feature[] = [
   {
     image: featureReliability,
-    title: "Reliable & resilient",
+    title: "Confiable y resistente",
     description:
-      "Starlink provides high-speed, low-latency internet with more than 99.9% average uptime and reliable connectivity around the globe. Designed to endure the elements — Starlink Kits can melt snow and withstand sleet, heavy rain, and harsh winds.",
-    link: { text: "Learn more", href: "#" },
+      "Starlink ofrece internet de alta velocidad y baja latencia con más del 99.9% de tiempo de actividad promedio y conectividad confiable en todo el mundo. Diseñado para resistir los elementos — los Kits Starlink pueden derretir nieve y soportar aguanieve, lluvia intensa y vientos fuertes.",
+    link: { text: "Más información", href: "#" },
   },
   {
     image: featureSpeeds,
-    title: "Internet designed for every need",
+    title: "Internet diseñado para cada necesidad",
     description:
-      "Starlink delivers speeds up to 400+ Mbps in most places globally, giving you the freedom to enjoy 4K streaming on multiple devices at once, effective working from home, online gaming, social media browsing, and more.",
-    link: { text: "Check speeds in your area", href: "#coverage" },
+      "Starlink ofrece velocidades de hasta 400+ Mbps en la mayoría de los lugares del mundo, dándote la libertad de disfrutar streaming 4K en múltiples dispositivos, trabajo remoto efectivo, juegos en línea, redes sociales y más.",
+    link: { text: "Consulta velocidades en tu zona", href: "#cobertura" },
   },
   {
     image: featureMini,
-    title: "Starlink Mini for internet on the go",
+    title: "Starlink Mini para internet en movimiento",
     description:
-      "Starlink Mini is a compact, portable kit that can easily fit in a backpack, designed to provide high-speed, low-latency internet on the go. It includes a built-in WiFi router, lower power consumption, DC power input, and max download speeds over 200 Mbps.",
-    link: { text: "Learn More", href: "#" },
+      "Starlink Mini es un kit compacto y portátil que cabe fácilmente en una mochila, diseñado para ofrecer internet de alta velocidad y baja latencia en movimiento. Incluye router WiFi integrado, menor consumo de energía, entrada de corriente DC y velocidades máximas de descarga de más de 200 Mbps.",
+    link: { text: "Más información", href: "#" },
   },
   {
     image: featureInstall,
-    title: "GET ONLINE IN MINUTES",
-    description: "Set up Starlink with just two steps. Instructions work in either order:",
+    title: "CONÉCTATE EN MINUTOS",
+    description: "Configura Starlink en solo dos pasos. Las instrucciones funcionan en cualquier orden:",
     steps: [
-      { num: "1", text: "PLUG IT IN" },
-      { num: "2", text: "POINT AT SKY" },
+      { num: "1", text: "CONÉCTALO" },
+      { num: "2", text: "APUNTA AL CIELO" },
     ],
   },
   {
     image: featurePlans,
-    title: "Flexible Service Plans",
+    title: "Planes de servicio flexibles",
     description:
-      "Starlink offers flexible service plans everywhere. Check availability by entering your address.",
-    link: { text: "Check availability", href: "#" },
+      "Starlink ofrece planes de servicio flexibles en todas partes. Consulta la disponibilidad ingresando tu dirección.",
+    link: { text: "Consultar disponibilidad", href: "#" },
   },
   {
     image: featureSpacex,
-    title: "ENGINEERED BY SPACEX",
+    title: "DISEÑADO POR SPACEX",
     description:
-      "As the world's leading provider of launch services – and the only provider with an orbital class reusable rocket – SpaceX has deep experience with both spacecraft and on-orbit operations.",
-    link: { text: "Learn More", href: "#" },
+      "Como el proveedor líder mundial de servicios de lanzamiento — y el único proveedor con un cohete reutilizable de clase orbital — SpaceX tiene amplia experiencia tanto con naves espaciales como con operaciones en órbita.",
+    link: { text: "Más información", href: "#" },
   },
 ];
 
@@ -66,27 +65,12 @@ const FeatureSections = () => {
     <div>
       {features.map((feature, i) => (
         <section key={i} className="relative w-full min-h-screen overflow-hidden">
-          {/* Full-bleed background image */}
-          <img
-            src={feature.image}
-            alt={feature.title}
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
-          />
-
-          {/* Dark overlay from bottom */}
+          <img src={feature.image} alt={feature.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-
-          {/* Content pinned to bottom */}
           <div className="relative z-10 flex flex-col justify-end h-full min-h-screen px-6 pb-20 pt-40">
             <div className="max-w-2xl">
-              <h2 className="text-foreground text-3xl md:text-5xl font-bold tracking-tight">
-                {feature.title}
-              </h2>
-              <p className="text-muted-foreground text-base md:text-lg mt-4 leading-relaxed max-w-xl">
-                {feature.description}
-              </p>
-
+              <h2 className="text-foreground text-3xl md:text-5xl font-bold tracking-tight">{feature.title}</h2>
+              <p className="text-muted-foreground text-base md:text-lg mt-4 leading-relaxed max-w-xl">{feature.description}</p>
               {feature.steps && (
                 <div className="flex gap-8 mt-6">
                   {feature.steps.map((step) => (
@@ -97,12 +81,8 @@ const FeatureSections = () => {
                   ))}
                 </div>
               )}
-
               {feature.link && (
-                <a
-                  href={feature.link.href}
-                  className="inline-flex items-center gap-1 text-foreground text-sm font-medium mt-6 underline underline-offset-4 hover:text-muted-foreground transition-colors"
-                >
+                <a href={feature.link.href} className="inline-flex items-center gap-1 text-foreground text-sm font-medium mt-6 underline underline-offset-4 hover:text-muted-foreground transition-colors">
                   {feature.link.text} ›
                 </a>
               )}
