@@ -1,28 +1,54 @@
 const footerLinks = [
   {
     title: "Starlink",
-    links: ["Residencial", "Empresas", "Marítimo", "Aviación", "Gobierno"],
+    links: [
+      { label: "Residential", href: "#residential" },
+      { label: "Roam", href: "#roam" },
+      { label: "Business", href: "#" },
+      { label: "Aviation", href: "#" },
+      { label: "Maritime", href: "#" },
+      { label: "Direct to Cell", href: "#" },
+    ],
   },
   {
-    title: "Soporte",
-    links: ["Centro de ayuda", "Instalación", "Solución de problemas", "Cuenta"],
+    title: "Support",
+    links: [
+      { label: "Help Center", href: "#" },
+      { label: "Account", href: "#" },
+      { label: "Service Plans", href: "#" },
+      { label: "Availability Map", href: "#coverage" },
+      { label: "Specifications", href: "#" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Technology", href: "#" },
+      { label: "Updates", href: "#" },
+      { label: "Customer Stories", href: "#" },
+      { label: "Video Guides", href: "#" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Términos de servicio", "Política de privacidad", "Licencias"],
+    links: [
+      { label: "Privacy Policy", href: "#" },
+      { label: "Terms of Service", href: "#" },
+      { label: "Licenses", href: "#" },
+    ],
   },
 ];
 
 const FooterSection = () => {
   return (
-    <footer className="bg-background border-t border-border py-16">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+    <footer className="bg-background border-t border-border py-14">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <p className="text-foreground font-bold text-lg tracking-widest">STARLINK</p>
-            <p className="text-muted-foreground text-sm mt-3 leading-relaxed">
-              Internet de alta velocidad, baja latencia en cualquier lugar del mundo.
+            <p className="text-foreground font-bold text-sm tracking-[0.35em]">STARLINK</p>
+            <p className="text-muted-foreground text-xs mt-4 leading-relaxed">
+              © 2026 SpaceX Starlink
             </p>
           </div>
 
@@ -31,37 +57,20 @@ const FooterSection = () => {
               <p className="text-foreground text-xs font-semibold tracking-widest uppercase mb-4">
                 {section.title}
               </p>
-              <ul className="space-y-2.5">
+              <ul className="space-y-2">
                 {section.links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
-                      className="text-muted-foreground text-sm hover:text-foreground transition-colors"
+                      href={link.href}
+                      className="text-muted-foreground text-xs hover:text-foreground transition-colors"
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-        </div>
-
-        <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-muted-foreground text-xs">
-            © 2026 Starlink. Todos los derechos reservados.
-          </p>
-          <div className="flex gap-6">
-            <a href="#" className="text-muted-foreground text-xs hover:text-foreground transition-colors">
-              Twitter
-            </a>
-            <a href="#" className="text-muted-foreground text-xs hover:text-foreground transition-colors">
-              Instagram
-            </a>
-            <a href="#" className="text-muted-foreground text-xs hover:text-foreground transition-colors">
-              YouTube
-            </a>
-          </div>
         </div>
       </div>
     </footer>

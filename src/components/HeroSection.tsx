@@ -1,56 +1,56 @@
-import heroImage from "@/assets/hero-space.jpg";
+import heroImage from "@/assets/hero-starlink.jpg";
+import { Play } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
+    <section className="relative w-full h-screen min-h-[700px] overflow-hidden">
       {/* Background image */}
       <img
         src={heroImage}
-        alt="Constelación de satélites Starlink orbitando la Tierra"
+        alt="Starlink satellite constellation orbiting Earth with dish in foreground"
         className="absolute inset-0 w-full h-full object-cover"
         loading="eager"
       />
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-hero-gradient" />
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
-        <h1
-          className="text-foreground text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight opacity-0 animate-fade-in-up"
-          style={{ animationDelay: "0.2s" }}
-        >
-          STARLINK
+        <h1 className="text-foreground text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight opacity-0 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          RELIABLE HIGH-SPEED
+          <br />
+          INTERNET FROM SPACE
         </h1>
-        <p
-          className="text-muted-foreground text-lg sm:text-xl md:text-2xl mt-4 max-w-2xl font-light opacity-0 animate-fade-in-up"
-          style={{ animationDelay: "0.5s" }}
-        >
-          Internet de alta velocidad en cualquier lugar del mundo
+
+        <p className="text-muted-foreground text-base sm:text-lg md:text-xl mt-6 max-w-xl font-light opacity-0 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
+          Connect at home or on the go
+          <br />
+          See <span className="text-foreground font-medium underline underline-offset-4 cursor-pointer">speeds</span> in your country
         </p>
-        <div
-          className="flex flex-col sm:flex-row gap-4 mt-10 opacity-0 animate-fade-in-up"
-          style={{ animationDelay: "0.8s" }}
-        >
-          <a
-            href="#"
-            className="bg-primary text-primary-foreground px-8 py-3.5 rounded text-sm font-semibold tracking-wider hover:opacity-90 transition-opacity"
-          >
-            ORDENAR AHORA
-          </a>
-          <a
-            href="#specs"
-            className="border border-foreground/30 text-foreground px-8 py-3.5 rounded text-sm font-semibold tracking-wider hover:bg-foreground/10 transition-colors"
-          >
-            MÁS INFORMACIÓN
-          </a>
-        </div>
+
+        <button className="flex items-center gap-2 mt-8 text-foreground text-xs tracking-[0.2em] font-semibold opacity-0 animate-fade-in-up hover:text-muted-foreground transition-colors" style={{ animationDelay: "0.8s" }}>
+          WATCH NOW
+          <Play size={18} className="fill-foreground" />
+        </button>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-fade-in" style={{ animationDelay: "1.5s" }}>
-        <div className="w-6 h-10 rounded-full border-2 border-foreground/30 flex items-start justify-center p-1.5">
-          <div className="w-1.5 h-3 bg-foreground/50 rounded-full animate-pulse-glow" />
+      {/* Service address input at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent pt-20 pb-8">
+        <div className="max-w-md mx-auto px-6">
+          <div className="flex gap-0">
+            <input
+              type="text"
+              placeholder="Service Address"
+              className="flex-1 bg-card border border-border rounded-l px-4 py-3 text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-foreground/30 transition-colors"
+            />
+            <button className="bg-foreground text-background px-6 py-3 rounded-r text-sm font-semibold tracking-wider shrink-0 hover:bg-foreground/90 transition-colors">
+              GET STARTED
+            </button>
+          </div>
+          <a href="#coverage" className="flex items-center justify-center gap-1 mt-3 text-muted-foreground text-xs tracking-wider hover:text-foreground transition-colors">
+            View Availability & Speeds Map ›
+          </a>
         </div>
       </div>
     </section>
