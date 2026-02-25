@@ -14,6 +14,7 @@ import AdminPage from "./pages/AdminPage";
 import ValidarAsesorPage from "./pages/ValidarAsesorPage";
 import { CountryProvider } from "./components/CountryContext";
 import SocialProof from "./components/SocialProof";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <CountryProvider>
           <SocialProof />
           <Routes>
