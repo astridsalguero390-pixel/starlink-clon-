@@ -70,9 +70,9 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
     HN: [
         {
             name: "Plan Mensual",
-            price: "$15.50",
+            price: "L 385",
             period: "/mes",
-            chipNote: "+ $27.50 chip de activación (pago único)",
+            chipNote: "+ L 680 chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -82,10 +82,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan 6 Meses",
-            price: "$49",
+            price: "L 1,215",
             period: "",
-            monthlyEquiv: "Solo $8.17/mes",
-            savings: "Ahorras $44",
+            monthlyEquiv: "Solo L 202/mes",
+            savings: "Ahorras L 1,095",
             bonus: "🎁 +2 meses GRATIS",
             benefits: [
                 "✅ Internet + llamadas + mensajes ilimitados",
@@ -96,10 +96,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan Anual",
-            price: "$85",
+            price: "L 2,110",
             period: "",
-            monthlyEquiv: "Solo $7.08/mes",
-            savings: "Ahorras $101",
+            monthlyEquiv: "Solo L 176/mes",
+            savings: "Ahorras L 2,510",
             bonus: "🎁 +3 meses GRATIS",
             benefits: [
                 "✅ Internet, llamadas y mensajes ilimitados",
@@ -109,9 +109,9 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan 2 Años",
-            price: "$135",
+            price: "L 3,350",
             period: "",
-            monthlyEquiv: "Solo $5.62/mes",
+            monthlyEquiv: "Solo L 140/mes",
             savings: "Máximo ahorro",
             bonus: "🎁 +4 meses GRATIS",
             benefits: [
@@ -189,9 +189,9 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
     CO: [
         {
             name: "Plan Mensual",
-            price: "$15.50",
+            price: "$62.000 COP",
             period: "/mes",
-            chipNote: "+ $27.50 chip de activación (pago único)",
+            chipNote: "+ $110.000 COP chip de activación (pago único)",
             benefits: [
                 "✅ Internet ilimitado",
                 "✅ Señal estable donde sea",
@@ -201,10 +201,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan 6 Meses",
-            price: "$49",
+            price: "$196.000 COP",
             period: "",
-            monthlyEquiv: "Solo $8.17/mes",
-            savings: "Ahorras $44",
+            monthlyEquiv: "Solo $32.700 COP/mes",
+            savings: "Ahorras $176.000 COP",
             bonus: "🎁 +2 meses GRATIS",
             benefits: [
                 "✅ Internet + llamadas + mensajes ilimitados",
@@ -215,10 +215,10 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan Anual",
-            price: "$85",
+            price: "$340.000 COP",
             period: "",
-            monthlyEquiv: "Solo $7.08/mes",
-            savings: "Ahorras $101",
+            monthlyEquiv: "Solo $28.300 COP/mes",
+            savings: "Ahorras $404.000 COP",
             bonus: "🎁 +3 meses GRATIS",
             benefits: [
                 "✅ Internet, llamadas y mensajes ilimitados",
@@ -228,9 +228,9 @@ const plansByCountry: Record<CountryCode, Plan[]> = {
         },
         {
             name: "Plan 2 Años",
-            price: "$135",
+            price: "$540.000 COP",
             period: "",
-            monthlyEquiv: "Solo $5.62/mes",
+            monthlyEquiv: "Solo $22.500 COP/mes",
             savings: "Máximo ahorro",
             bonus: "🎁 +4 meses GRATIS",
             benefits: [

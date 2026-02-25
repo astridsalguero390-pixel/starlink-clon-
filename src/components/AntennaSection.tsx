@@ -26,7 +26,7 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
     HN: [
         {
             name: "STARLINK MINI",
-            price: "$180",
+            price: "L 4,464",
             tag: "Incluye 1 año de servicio GRATIS",
             includes: ["Antena satelital compacta", "Router Wi-Fi integrado", "Base/soporte", "Cables y fuente de poder"],
             benefits: ["Muy portátil y ligera", "Instalación rápida (plug & play)", "Bajo consumo de energía", "Velocidades 350–400 Mbps"],
@@ -36,7 +36,7 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
         },
         {
             name: "STARLINK ESTÁNDAR",
-            price: "$250",
+            price: "L 6,200",
             includes: ["Antena satelital", "Router Wi-Fi 6 (más potente)", "Base/soporte", "Cables y fuente de poder"],
             benefits: ["Señal más estable", "Mayor cobertura Wi-Fi", "Mejor rendimiento con muchos dispositivos", "Hasta 700 Mbps"],
             devices: "Hasta 235 dispositivos",
@@ -89,7 +89,7 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
     CO: [
         {
             name: "STARLINK MINI",
-            price: "$180",
+            price: "$720.000 COP",
             tag: "Incluye 1 año de servicio GRATIS",
             includes: ["Antena satelital compacta", "Router Wi-Fi integrado", "Base/soporte", "Cables y fuente de poder"],
             benefits: ["Muy portátil y ligera", "Instalación rápida (plug & play)", "Bajo consumo de energía", "Velocidades 350–400 Mbps"],
@@ -99,7 +99,7 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
         },
         {
             name: "STARLINK ESTÁNDAR",
-            price: "$250",
+            price: "$1.000.000 COP",
             includes: ["Antena satelital", "Router Wi-Fi 6 (más potente)", "Base/soporte", "Cables y fuente de poder"],
             benefits: ["Señal más estable", "Mayor cobertura Wi-Fi", "Mejor rendimiento con muchos dispositivos", "Hasta 700 Mbps"],
             devices: "Hasta 235 dispositivos",
@@ -109,24 +109,29 @@ const antennasByCountry: Record<CountryCode, AntennaProduct[]> = {
     ],
 };
 
-const internetPlans: InternetPlan[] = [
-    {
-        name: "Residencia Lite",
-        price: "$15/mes",
-        speed: "Hasta 100 Mbps",
-        description: "Ideal para redes sociales, navegación, clases virtuales y streaming HD.",
-    },
-    {
-        name: "Residencial",
-        price: "$20/mes",
-        speed: "Hasta 300 Mbps",
-        description: "Perfecto para hogares con varios dispositivos, streaming 4K, videollamadas y gaming.",
-    },
-];
+const internetPlansByCountry: Record<CountryCode, InternetPlan[]> = {
+    EC: [
+        { name: "Residencia Lite", price: "$15/mes", speed: "Hasta 100 Mbps", description: "Ideal para redes sociales, navegación, clases virtuales y streaming HD." },
+        { name: "Residencial", price: "$20/mes", speed: "Hasta 300 Mbps", description: "Perfecto para hogares con varios dispositivos, streaming 4K, videollamadas y gaming." },
+    ],
+    HN: [
+        { name: "Residencia Lite", price: "L 372/mes", speed: "Hasta 100 Mbps", description: "Ideal para redes sociales, navegación, clases virtuales y streaming HD." },
+        { name: "Residencial", price: "L 496/mes", speed: "Hasta 300 Mbps", description: "Perfecto para hogares con varios dispositivos, streaming 4K, videollamadas y gaming." },
+    ],
+    PE: [
+        { name: "Residencia Lite", price: "S/. 57/mes", speed: "Hasta 100 Mbps", description: "Ideal para redes sociales, navegación, clases virtuales y streaming HD." },
+        { name: "Residencial", price: "S/. 75/mes", speed: "Hasta 300 Mbps", description: "Perfecto para hogares con varios dispositivos, streaming 4K, videollamadas y gaming." },
+    ],
+    CO: [
+        { name: "Residencia Lite", price: "$60.000 COP/mes", speed: "Hasta 100 Mbps", description: "Ideal para redes sociales, navegación, clases virtuales y streaming HD." },
+        { name: "Residencial", price: "$80.000 COP/mes", speed: "Hasta 300 Mbps", description: "Perfecto para hogares con varios dispositivos, streaming 4K, videollamadas y gaming." },
+    ],
+};
 
 const AntennaSection = () => {
     const { country } = useCountryContext();
     const antennas = antennasByCountry[country];
+    const internetPlans = internetPlansByCountry[country];
     const [selectedPlan, setSelectedPlan] = useState<PlanInfo | null>(null);
 
     return (
