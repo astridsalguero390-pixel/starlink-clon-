@@ -7,10 +7,11 @@ import SEO from "@/components/SEO";
 
 // ─── Order State Config ───────────────────────────────────────────────────────
 const ESTADOS: { key: Pedido["estado"]; label: string; icon: React.ElementType; desc: string }[] = [
-    { key: "procesando", label: "Pedido recibido", icon: Clock, desc: "Tu pedido ha sido registrado y está siendo procesado." },
-    { key: "preparando", label: "Preparando envío", icon: Box, desc: "Estamos preparando tu paquete para el despacho." },
-    { key: "enviado", label: "Enviado", icon: Truck, desc: "Tu paquete fue entregado a la empresa de envíos." },
-    { key: "en_camino", label: "En camino", icon: MapPin, desc: "Tu pedido está en ruta hacia tu dirección." },
+    { key: "en_preparacion", label: "En preparación", icon: Box, desc: "Estamos preparando tu paquete para el despacho." },
+    { key: "pendiente_recogida", label: "Pendiente de recogida", icon: Clock, desc: "El paquete está listo. Esperando que el transportista lo recoja." },
+    { key: "recogido", label: "Recogido por transportista", icon: Package, desc: "El transportista ya recogió tu paquete." },
+    { key: "enviado", label: "Enviado", icon: Truck, desc: "Tu paquete fue despachado y está en camino." },
+    { key: "en_ruta", label: "En ruta", icon: MapPin, desc: "Tu pedido está en ruta hacia tu dirección." },
     { key: "entregado", label: "Entregado ✓", icon: CheckCircle, desc: "¡Tu pedido fue entregado exitosamente!" },
 ];
 

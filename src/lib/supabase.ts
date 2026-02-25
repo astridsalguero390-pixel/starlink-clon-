@@ -31,7 +31,7 @@ export interface Pedido {
     id: string;
     contrato_id: string;
     numero_pedido: string;
-    estado: "procesando" | "preparando" | "enviado" | "en_camino" | "entregado";
+    estado: "en_preparacion" | "pendiente_recogida" | "recogido" | "enviado" | "en_ruta" | "entregado";
     empresa_envio?: string;
     numero_guia?: string;
     fecha_estimada?: string;

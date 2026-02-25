@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
-import { supabase, Contrato } from "@/lib/supabase";
+import { supabase, Contrato, Pedido } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import FooterSection from "@/components/FooterSection";
-import { MessageSquare, RefreshCw, Inbox, Lock, Eye, EyeOff, LogOut, FileText, Share2, SendHorizonal, Plus, CheckCircle, Clock, ToggleLeft, ToggleRight } from "lucide-react";
+import {
+    MessageSquare, RefreshCw, Inbox, Lock, Eye, EyeOff, LogOut,
+    FileText, Share2, SendHorizonal, Plus, CheckCircle, Clock,
+    ToggleLeft, ToggleRight, Package, Save, Truck
+} from "lucide-react";
 import ConvertToContractModal from "@/components/ConvertToContractModal";
 import CreateContractModal, { DOMINIOS } from "@/components/CreateContractModal";
 
 type EstadoLead = "nuevo" | "contactado" | "venta" | "descartado";
-type TabAdmin = "leads" | "contratos";
+type TabAdmin = "leads" | "contratos" | "envios";
+type EstadoPedido = Pedido["estado"];
 
 interface Lead {
     id: string;
@@ -28,6 +33,11 @@ interface Lead {
     created_at: string;
 }
 
+// Pedido enriquecido con datos del contrato para la vista de envíos
+interface PedidoConContrato extends Pedido {
+    contrato?: Contrato;
+}
+
 const ESTADO_COLORS: Record<EstadoLead, string> = {
     nuevo: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     contactado: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
@@ -35,7 +45,31 @@ const ESTADO_COLORS: Record<EstadoLead, string> = {
     descartado: "bg-red-500/20 text-red-300 border-red-500/30",
 };
 
+const ESTADO_ENVIO_LABELS: Record<EstadoPedido, string> = {
+    en_preparacion: "📦 En preparación",
+    pendiente_recogida: "⏳ Pendiente de recogida",
+    recogido: "🚚 Recogido",
+    enviado: "📬 Enviado",
+    en_ruta: "📍 En ruta",
+    entregado: "✅ Entregado",
+};
+
+const ESTADO_ENVIO_COLORS: Record<EstadoPedido, string> = {
+    en_preparacion: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    pendiente_recogida: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+    recogido: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    enviado: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+    en_ruta: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    entregado: "bg-green-500/20 text-green-300 border-green-500/30",
+};
+
 const paisLabel: Record<string, string> = { EC: "🇪🇨 EC", HN: "🇭🇳 HN", PE: "🇵🇪 PE", CO: "🇨🇴 CO" };
+
+function generarNumeroPedido(): string {
+    const year = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `PED-${year}-${rand}`;
+}
 
 function buildWhatsAppMsg(lead: Lead): string {
     return encodeURIComponent(
@@ -78,25 +112,24 @@ function buildContratoMsg(lead: Lead): string {
     );
 }
 
-function buildContratoClienteMsg(c: Contrato): string {
-    const estado = c.estado_pago === "activo" ? "✅ PLAN ACTIVO" : "⚠️ PAGO PENDIENTE";
+function buildContratoClienteMsg(c: Contrato, pedido?: Pedido | null): string {
+    const estadoPago = c.estado_pago === "activo" ? "✅ PLAN ACTIVO" : "⚠️ PAGO PENDIENTE";
+    const estadoEnvio = pedido ? `\n📦 *Estado del pedido:* ${ESTADO_ENVIO_LABELS[pedido.estado]}` : "";
     return encodeURIComponent(
         `Hola ${c.nombre} 👋\n\n` +
-        `Aquí están los detalles de tu contrato Starlink:\n\n` +
+        `Detalles de tu contrato Starlink:\n\n` +
         `📄 *Contrato:* ${c.numero_contrato}\n` +
         `📦 *Plan:* ${c.plan}\n` +
         `💰 *Precio:* ${c.precio} ${c.moneda}\n` +
-        `📊 *Estado:* ${estado}\n\n` +
-        `🔗 Verifica tu contrato en:\n${DOMINIOS}/verificar-contrato\n\n` +
-        (c.estado_pago === "pendiente"
-            ? `⚠️ Recuerda que tu plan se activará una vez confirmemos tu pago.\n\n`
-            : `✅ Tu servicio está activo. ¡Disfruta de Starlink! 🚀\n\n`
-        ) +
+        `💳 *Estado pago:* ${estadoPago}` +
+        estadoEnvio + `\n\n` +
+        `🔗 Verifica en: ${DOMINIOS}/verificar-contrato\n` +
+        `🔗 Pedido: ${DOMINIOS}/estado-pedido\n\n` +
         `¡Gracias por confiar en nosotros! 💙`
     );
 }
 
-// ── Login Screen ───────────────────────────────
+// ── Login Screen ─────────────────────────────
 const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     const [email, setEmail] = useState("");
     const [pass, setPass] = useState("");
@@ -147,25 +180,166 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     );
 };
 
+// ── Fila de envío por contrato ─────────────────
+interface EnvioRowProps {
+    contrato: Contrato;
+    pedido: Pedido | null;
+    onPedidoChange: (pedido: Pedido) => void;
+}
+
+const EnvioRow = ({ contrato, pedido, onPedidoChange }: EnvioRowProps) => {
+    const [saving, setSaving] = useState(false);
+    const [estado, setEstado] = useState<EstadoPedido>(pedido?.estado ?? "en_preparacion");
+    const [empresa, setEmpresa] = useState(pedido?.empresa_envio ?? "");
+    const [guia, setGuia] = useState(pedido?.numero_guia ?? "");
+    const [obs, setObs] = useState(pedido?.observaciones ?? "");
+    const [fechaEst, setFechaEst] = useState(pedido?.fecha_estimada ?? "");
+    const [expanded, setExpanded] = useState(false);
+
+    const handleCrearPedido = async () => {
+        setSaving(true);
+        const numero_pedido = generarNumeroPedido();
+        const { data } = await supabase.from("pedidos").insert({
+            contrato_id: contrato.id,
+            numero_pedido,
+            estado: "en_preparacion",
+        }).select().single();
+        setSaving(false);
+        if (data) { onPedidoChange(data as Pedido); setExpanded(true); }
+    };
+
+    const handleGuardar = async () => {
+        if (!pedido) return;
+        setSaving(true);
+        const { data } = await supabase.from("pedidos").update({
+            estado,
+            empresa_envio: empresa || null,
+            numero_guia: guia || null,
+            observaciones: obs || null,
+            fecha_estimada: fechaEst || null,
+        }).eq("id", pedido.id).select().single();
+        setSaving(false);
+        if (data) onPedidoChange(data as Pedido);
+    };
+
+    const inputCls = "bg-background border border-border rounded px-2.5 py-1.5 text-foreground text-xs outline-none focus:border-foreground/30 transition-colors w-full";
+
+    return (
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+            {/* Header row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
+                <div className="flex items-center gap-3">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <p className="text-foreground font-bold text-sm">{contrato.nombre} {contrato.apellido}</p>
+                            <span className="text-muted-foreground text-xs">{paisLabel[contrato.pais] ?? contrato.pais}</span>
+                        </div>
+                        <p className="text-muted-foreground text-xs font-mono">{contrato.numero_contrato} · {contrato.plan}</p>
+                        <p className="text-muted-foreground text-xs">📱 {contrato.telefono}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    {pedido ? (
+                        <>
+                            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${ESTADO_ENVIO_COLORS[pedido.estado]}`}>
+                                {ESTADO_ENVIO_LABELS[pedido.estado]}
+                            </span>
+                            <button
+                                onClick={() => setExpanded(!expanded)}
+                                className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded text-xs font-semibold transition-colors"
+                            >
+                                {expanded ? "Cerrar" : "Gestionar"}
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={handleCrearPedido} disabled={saving}
+                            className="flex items-center gap-1.5 bg-foreground text-background px-3 py-1.5 rounded text-xs font-bold hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                            <Plus size={12} />{saving ? "Creando..." : "CREAR PEDIDO"}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Expanded panel */}
+            {pedido && expanded && (
+                <div className="border-t border-border px-4 py-4 space-y-3">
+                    <p className="text-muted-foreground text-xs tracking-widest uppercase font-medium">
+                        📦 {pedido.numero_pedido}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Estado */}
+                        <div className="sm:col-span-2">
+                            <label className="text-muted-foreground text-xs mb-1 block tracking-wider uppercase">Estado de envío</label>
+                            <select value={estado} onChange={e => setEstado(e.target.value as EstadoPedido)} className={inputCls}>
+                                <option value="en_preparacion">📦 En preparación</option>
+                                <option value="pendiente_recogida">⏳ Pendiente de recogida</option>
+                                <option value="recogido">🚚 Recogido por transportista</option>
+                                <option value="enviado">📬 Enviado</option>
+                                <option value="en_ruta">📍 En ruta</option>
+                                <option value="entregado">✅ Entregado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-muted-foreground text-xs mb-1 block tracking-wider uppercase">Empresa de envíos</label>
+                            <input value={empresa} onChange={e => setEmpresa(e.target.value)} className={inputCls} placeholder="Cargo Expreso, DHL..." />
+                        </div>
+                        <div>
+                            <label className="text-muted-foreground text-xs mb-1 block tracking-wider uppercase">Número de guía</label>
+                            <input value={guia} onChange={e => setGuia(e.target.value)} className={inputCls} placeholder="CE-2026-00123" />
+                        </div>
+                        <div>
+                            <label className="text-muted-foreground text-xs mb-1 block tracking-wider uppercase">Fecha estimada de entrega</label>
+                            <input type="date" value={fechaEst} onChange={e => setFechaEst(e.target.value)} className={inputCls} />
+                        </div>
+                        <div>
+                            <label className="text-muted-foreground text-xs mb-1 block tracking-wider uppercase">Observaciones</label>
+                            <input value={obs} onChange={e => setObs(e.target.value)} className={inputCls} placeholder="Entregado en portería..." />
+                        </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                        <button onClick={handleGuardar} disabled={saving}
+                            className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded text-xs font-bold hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                            <Save size={13} />{saving ? "Guardando..." : "GUARDAR CAMBIOS"}
+                        </button>
+                        <a
+                            href={`https://wa.me/${contrato.telefono.replace(/\D/g, "")}?text=${buildContratoClienteMsg(contrato, pedido)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-[#25D366] text-white px-4 py-2 rounded text-xs font-bold hover:bg-[#1ebe5d] transition-colors"
+                        >
+                            <SendHorizonal size={13} />NOTIFICAR CLIENTE
+                        </a>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── Main Admin Page ────────────────────────────
 const AdminPage = () => {
     const [authed, setAuthed] = useState(false);
     const [checking, setChecking] = useState(true);
     const [tab, setTab] = useState<TabAdmin>("leads");
 
-    // ── Leads state
+    // Leads
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loadingLeads, setLoadingLeads] = useState(true);
     const [filtroEstado, setFiltroEstado] = useState<EstadoLead | "todos">("todos");
     const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
 
-    // ── Contratos state
+    // Contratos
     const [contratos, setContratos] = useState<Contrato[]>([]);
     const [loadingContratos, setLoadingContratos] = useState(false);
     const [showCreateContract, setShowCreateContract] = useState(false);
     const [filtroPago, setFiltroPago] = useState<"todos" | "pendiente" | "activo">("todos");
 
-    // ── Auth check
+    // Envíos
+    const [pedidos, setPedidos] = useState<PedidoConContrato[]>([]);
+    const [loadingEnvios, setLoadingEnvios] = useState(false);
+    const [filtroEnvio, setFiltroEnvio] = useState<EstadoPedido | "todos" | "sin_pedido">("todos");
+    // Mapa contrato_id → pedido para la vista por cliente
+    const [pedidoMap, setPedidoMap] = useState<Record<string, Pedido>>({});
+
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => {
             setAuthed(!!data.session);
@@ -173,7 +347,6 @@ const AdminPage = () => {
         });
     }, []);
 
-    // ── Fetch leads
     const fetchLeads = async () => {
         setLoadingLeads(true);
         const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
@@ -181,7 +354,6 @@ const AdminPage = () => {
         setLoadingLeads(false);
     };
 
-    // ── Fetch contratos
     const fetchContratos = async () => {
         setLoadingContratos(true);
         const { data } = await supabase.from("contratos").select("*").order("created_at", { ascending: false });
@@ -189,10 +361,26 @@ const AdminPage = () => {
         setLoadingContratos(false);
     };
 
+    const fetchEnvios = async () => {
+        setLoadingEnvios(true);
+        // Load all pedidos with their contratos
+        const { data: ped } = await supabase.from("pedidos").select("*").order("updated_at", { ascending: false });
+        const { data: cont } = await supabase.from("contratos").select("*");
+        if (ped && cont) {
+            const contratoById = Object.fromEntries((cont as Contrato[]).map(c => [c.id, c]));
+            const enriched = (ped as Pedido[]).map(p => ({ ...p, contrato: contratoById[p.contrato_id] }));
+            setPedidos(enriched);
+            const map = Object.fromEntries((ped as Pedido[]).map(p => [p.contrato_id, p]));
+            setPedidoMap(map);
+        }
+        setLoadingEnvios(false);
+    };
+
     useEffect(() => {
         if (!authed) return;
         fetchLeads();
         fetchContratos();
+        fetchEnvios();
     }, [authed]);
 
     const updateEstado = async (id: string, estado: EstadoLead) => {
@@ -206,11 +394,14 @@ const AdminPage = () => {
         setContratos((prev) => prev.map((x) => x.id === c.id ? { ...x, estado_pago: nuevo } : x));
     };
 
+    const handlePedidoChange = (pedido: Pedido) => {
+        setPedidoMap(prev => ({ ...prev, [pedido.contrato_id]: pedido }));
+        fetchEnvios();
+    };
+
     const logout = async () => {
         await supabase.auth.signOut();
         setAuthed(false);
-        setLeads([]);
-        setContratos([]);
     };
 
     if (checking) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm">Verificando sesión...</p></div>;
@@ -218,6 +409,15 @@ const AdminPage = () => {
 
     const filteredLeads = filtroEstado === "todos" ? leads : leads.filter((l) => l.estado === filtroEstado);
     const filteredContratos = filtroPago === "todos" ? contratos : contratos.filter((c) => c.estado_pago === filtroPago);
+    const filteredEnvios = filtroEnvio === "todos"
+        ? pedidos
+        : filtroEnvio === "sin_pedido"
+            ? []
+            : pedidos.filter(p => p.estado === filtroEnvio);
+
+    // Contratos sin pedido (para vista envíos por cliente)
+    const contratosSinPedido = contratos.filter(c => !pedidoMap[c.id]);
+    const contratosConPedido = contratos.filter(c => !!pedidoMap[c.id]);
 
     return (
         <div className="min-h-screen bg-background">
@@ -231,7 +431,7 @@ const AdminPage = () => {
                         <h1 className="text-foreground text-2xl md:text-3xl font-bold tracking-tight">Administración</h1>
                     </div>
                     <div className="flex gap-2 self-start">
-                        <button onClick={() => { fetchLeads(); fetchContratos(); }} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-foreground transition-colors">
+                        <button onClick={() => { fetchLeads(); fetchContratos(); fetchEnvios(); }} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-foreground transition-colors">
                             <RefreshCw size={14} />Actualizar
                         </button>
                         <button onClick={logout} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-red-400 transition-colors">
@@ -240,20 +440,18 @@ const AdminPage = () => {
                     </div>
                 </div>
 
-                {/* Main tabs: LEADS | CONTRATOS */}
-                <div className="flex gap-0 mb-6 border-b border-border">
-                    <button
-                        onClick={() => setTab("leads")}
-                        className={`px-5 py-2.5 text-sm font-semibold tracking-wide border-b-2 transition-colors -mb-px ${tab === "leads" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-                    >
-                        📋 Solicitudes ({leads.length})
-                    </button>
-                    <button
-                        onClick={() => setTab("contratos")}
-                        className={`px-5 py-2.5 text-sm font-semibold tracking-wide border-b-2 transition-colors -mb-px ${tab === "contratos" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-                    >
-                        📄 Contratos ({contratos.length})
-                    </button>
+                {/* Main tabs */}
+                <div className="flex gap-0 mb-6 border-b border-border overflow-x-auto">
+                    {([
+                        { key: "leads", label: `📋 Solicitudes (${leads.length})` },
+                        { key: "contratos", label: `📄 Contratos (${contratos.length})` },
+                        { key: "envios", label: `📦 Envíos (${pedidos.length})` },
+                    ] as const).map(t => (
+                        <button key={t.key} onClick={() => setTab(t.key)}
+                            className={`px-5 py-2.5 text-sm font-semibold tracking-wide border-b-2 transition-colors -mb-px whitespace-nowrap ${tab === t.key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                            {t.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* ─── TAB: LEADS ─── */}
@@ -263,7 +461,7 @@ const AdminPage = () => {
                             {(["todos", "nuevo", "contactado", "venta", "descartado"] as const).map((e) => (
                                 <button key={e} onClick={() => setFiltroEstado(e)}
                                     className={`px-3 py-1.5 rounded text-xs font-semibold tracking-wide transition-colors border ${filtroEstado === e ? "bg-foreground text-background border-transparent" : "border-border text-muted-foreground hover:text-foreground"}`}>
-                                    {e === "todos" ? `Todos (${leads.length})` : `${e.charAt(0).toUpperCase() + e.slice(1)} (${leads.filter((l) => l.estado === e).length})`}
+                                    {e === "todos" ? `Todos (${leads.length})` : `${e.charAt(0).toUpperCase() + e.slice(1)} (${leads.filter(l => l.estado === e).length})`}
                                 </button>
                             ))}
                         </div>
@@ -271,10 +469,7 @@ const AdminPage = () => {
                         {loadingLeads ? (
                             <div className="text-center py-16 text-muted-foreground text-sm">Cargando...</div>
                         ) : filteredLeads.length === 0 ? (
-                            <div className="text-center py-16">
-                                <Inbox size={32} className="mx-auto text-muted-foreground mb-3" />
-                                <p className="text-muted-foreground text-sm">Sin solicitudes {filtroEstado !== "todos" ? `en estado "${filtroEstado}"` : "aún"}</p>
-                            </div>
+                            <div className="text-center py-16"><Inbox size={32} className="mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground text-sm">Sin solicitudes {filtroEstado !== "todos" ? `en estado "${filtroEstado}"` : "aún"}</p></div>
                         ) : (
                             <div className="space-y-4">
                                 {filteredLeads.map((lead) => (
@@ -295,45 +490,23 @@ const AdminPage = () => {
                                                     {lead.referencia && <p className="text-muted-foreground col-span-2">🔖 {lead.referencia}</p>}
                                                 </div>
                                                 <div className="mt-3 flex flex-wrap gap-2">
-                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">
-                                                        {lead.tipo_servicio === "sim" ? "📱" : "📡"} {lead.plan_nombre}
-                                                    </span>
-                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">
-                                                        💰 {lead.plan_precio}
-                                                    </span>
-                                                    <span className="text-muted-foreground text-[11px]">
-                                                        {new Date(lead.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                                    </span>
+                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{lead.tipo_servicio === "sim" ? "📱" : "📡"} {lead.plan_nombre}</span>
+                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">💰 {lead.plan_precio}</span>
+                                                    <span className="text-muted-foreground text-[11px]">{new Date(lead.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                                                 </div>
                                                 {lead.notas && <p className="text-muted-foreground text-xs mt-2 italic">📝 {lead.notas}</p>}
                                             </div>
-
                                             <div className="flex flex-col gap-2 shrink-0 min-w-[160px]">
-                                                <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, "")}?text=${buildWhatsAppMsg(lead)}`} target="_blank" rel="noopener noreferrer"
-                                                    className="flex items-center justify-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-[#1ebe5d] transition-colors">
-                                                    <MessageSquare size={13} />CONTACTAR
-                                                </a>
-                                                <a href={`https://wa.me/?text=${buildShareLeadMsg(lead)}`} target="_blank" rel="noopener noreferrer"
-                                                    className="flex items-center justify-center gap-2 border border-border text-muted-foreground px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:text-foreground hover:border-foreground/40 transition-colors">
-                                                    <Share2 size={13} />COMPARTIR
-                                                </a>
+                                                <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, "")}?text=${buildWhatsAppMsg(lead)}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-[#1ebe5d] transition-colors"><MessageSquare size={13} />CONTACTAR</a>
+                                                <a href={`https://wa.me/?text=${buildShareLeadMsg(lead)}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 border border-border text-muted-foreground px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:text-foreground hover:border-foreground/40 transition-colors"><Share2 size={13} />COMPARTIR</a>
                                                 {lead.estado !== "descartado" && lead.estado !== "venta" && (
-                                                    <button onClick={() => setConvertingLead(lead)}
-                                                        className="flex items-center justify-center gap-2 border border-foreground/40 text-foreground px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-foreground/10 transition-colors">
-                                                        <FileText size={13} />CREAR CONTRATO
-                                                    </button>
+                                                    <button onClick={() => setConvertingLead(lead)} className="flex items-center justify-center gap-2 border border-foreground/40 text-foreground px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-foreground/10 transition-colors"><FileText size={13} />CREAR CONTRATO</button>
                                                 )}
                                                 {lead.estado === "venta" && (
-                                                    <>
-                                                        <p className="text-green-400 text-[11px] font-semibold text-center">✅ Contrato creado</p>
-                                                        <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, "")}?text=${buildContratoMsg(lead)}`} target="_blank" rel="noopener noreferrer"
-                                                            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-blue-500 transition-colors">
-                                                            <SendHorizonal size={13} />ENVIAR CONTRATO
-                                                        </a>
-                                                    </>
+                                                    <><p className="text-green-400 text-[11px] font-semibold text-center">✅ Contrato creado</p>
+                                                        <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, "")}?text=${buildContratoMsg(lead)}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-blue-500 transition-colors"><SendHorizonal size={13} />ENVIAR CONTRATO</a></>
                                                 )}
-                                                <select value={lead.estado} onChange={(e) => updateEstado(lead.id, e.target.value as EstadoLead)}
-                                                    className="bg-background border border-border rounded px-3 py-2 text-foreground text-xs outline-none focus:border-foreground/40 cursor-pointer">
+                                                <select value={lead.estado} onChange={(e) => updateEstado(lead.id, e.target.value as EstadoLead)} className="bg-background border border-border rounded px-3 py-2 text-foreground text-xs outline-none focus:border-foreground/40 cursor-pointer">
                                                     <option value="nuevo">🔵 Nuevo</option>
                                                     <option value="contactado">🟡 Contactado</option>
                                                     <option value="venta">🟢 Venta confirmada</option>
@@ -351,7 +524,6 @@ const AdminPage = () => {
                 {/* ─── TAB: CONTRATOS ─── */}
                 {tab === "contratos" && (
                     <>
-                        {/* Subheader */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                             <div className="flex flex-wrap gap-2">
                                 {(["todos", "pendiente", "activo"] as const).map((f) => (
@@ -361,10 +533,7 @@ const AdminPage = () => {
                                     </button>
                                 ))}
                             </div>
-                            <button
-                                onClick={() => setShowCreateContract(true)}
-                                className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded text-xs font-bold tracking-widest hover:bg-foreground/90 transition-colors"
-                            >
+                            <button onClick={() => setShowCreateContract(true)} className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded text-xs font-bold tracking-widest hover:bg-foreground/90 transition-colors">
                                 <Plus size={14} />CREAR CONTRATO
                             </button>
                         </div>
@@ -372,96 +541,48 @@ const AdminPage = () => {
                         {loadingContratos ? (
                             <div className="text-center py-16 text-muted-foreground text-sm">Cargando contratos...</div>
                         ) : filteredContratos.length === 0 ? (
-                            <div className="text-center py-16">
-                                <Inbox size={32} className="mx-auto text-muted-foreground mb-3" />
-                                <p className="text-muted-foreground text-sm">No hay contratos {filtroPago !== "todos" ? `con estado "${filtroPago}"` : "aún"}</p>
-                                <button onClick={() => setShowCreateContract(true)} className="mt-4 flex items-center gap-2 mx-auto border border-foreground/40 text-foreground px-4 py-2 rounded text-xs font-bold hover:bg-foreground/10 transition-colors">
-                                    <Plus size={13} />Crear primer contrato
-                                </button>
-                            </div>
+                            <div className="text-center py-16"><Inbox size={32} className="mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground text-sm">No hay contratos {filtroPago !== "todos" ? `con estado "${filtroPago}"` : "aún"}</p></div>
                         ) : (
                             <div className="space-y-3">
                                 {filteredContratos.map((c) => (
                                     <div key={c.id} className="bg-card border border-border rounded-lg p-5">
                                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-
-                                            {/* Info */}
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 flex-wrap mb-2">
                                                     <p className="text-foreground font-bold text-sm font-mono tracking-wider">{c.numero_contrato}</p>
-                                                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${c.estado_pago === "activo"
-                                                        ? "bg-green-500/20 text-green-300 border-green-500/30"
-                                                        : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
-                                                        }`}>
+                                                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${c.estado_pago === "activo" ? "bg-green-500/20 text-green-300 border-green-500/30" : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"}`}>
                                                         {c.estado_pago === "activo" ? "✅ PLAN ACTIVO" : "⚠️ PAGO PENDIENTE"}
                                                     </span>
                                                     <span className="text-muted-foreground text-xs">{paisLabel[c.pais] ?? c.pais}</span>
                                                 </div>
-
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5 text-xs">
                                                     <p className="text-muted-foreground">👤 <span className="text-foreground">{c.nombre} {c.apellido}</span></p>
                                                     <p className="text-muted-foreground">📱 <span className="text-foreground font-mono">{c.telefono}</span></p>
                                                     {c.email && <p className="text-muted-foreground">✉️ {c.email}</p>}
                                                     <p className="text-muted-foreground">📍 {c.ciudad}</p>
                                                 </div>
-
                                                 <div className="mt-3 flex flex-wrap gap-2">
-                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">
-                                                        {c.tipo_servicio === "sim" ? "📱" : "📡"} {c.plan}
-                                                    </span>
-                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">
-                                                        💰 {c.precio} {c.moneda}
-                                                    </span>
-                                                    <span className="text-muted-foreground text-[11px]">
-                                                        {new Date(c.fecha_compra).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
-                                                    </span>
+                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{c.tipo_servicio === "sim" ? "📱" : "📡"} {c.plan}</span>
+                                                    <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2.5 py-0.5 rounded-full font-semibold">💰 {c.precio} {c.moneda}</span>
+                                                    <span className="text-muted-foreground text-[11px]">{new Date(c.fecha_compra).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}</span>
                                                 </div>
+                                                {pedidoMap[c.id] && (
+                                                    <p className="text-xs mt-2">
+                                                        <span className={`font-semibold px-2 py-0.5 rounded-full border ${ESTADO_ENVIO_COLORS[pedidoMap[c.id].estado]}`}>
+                                                            {ESTADO_ENVIO_LABELS[pedidoMap[c.id].estado]}
+                                                        </span>
+                                                    </p>
+                                                )}
                                                 {c.notas && <p className="text-muted-foreground text-xs mt-2 italic">📝 {c.notas}</p>}
                                             </div>
-
-                                            {/* Actions */}
                                             <div className="flex flex-col gap-2 shrink-0 min-w-[170px]">
-                                                {/* Toggle pago */}
-                                                <button
-                                                    onClick={() => toggleEstadoPago(c)}
-                                                    className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded text-xs font-bold tracking-wide border transition-all ${c.estado_pago === "activo"
-                                                        ? "bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30"
-                                                        : "bg-yellow-500/20 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
-                                                        }`}
-                                                >
-                                                    {c.estado_pago === "activo"
-                                                        ? <><ToggleRight size={15} />PLAN ACTIVO</>
-                                                        : <><ToggleLeft size={15} />PAGO PENDIENTE</>
-                                                    }
+                                                <button onClick={() => toggleEstadoPago(c)} className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded text-xs font-bold tracking-wide border transition-all ${c.estado_pago === "activo" ? "bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30" : "bg-yellow-500/20 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"}`}>
+                                                    {c.estado_pago === "activo" ? <><ToggleRight size={15} />PLAN ACTIVO</> : <><ToggleLeft size={15} />PAGO PENDIENTE</>}
                                                 </button>
-
-                                                {/* Enviar por WhatsApp al cliente */}
-                                                <a
-                                                    href={`https://wa.me/${c.telefono.replace(/\D/g, "")}?text=${buildContratoClienteMsg(c)}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center justify-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-[#1ebe5d] transition-colors"
-                                                >
-                                                    <SendHorizonal size={13} />ENVIAR AL CLIENTE
-                                                </a>
-
-                                                {/* Marcar activo shortcut */}
-                                                {c.estado_pago === "pendiente" && (
-                                                    <button
-                                                        onClick={() => toggleEstadoPago(c)}
-                                                        className="flex items-center justify-center gap-2 border border-green-500/40 text-green-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-green-500/10 transition-colors"
-                                                    >
-                                                        <CheckCircle size={13} />MARCAR COMO PAGADO
-                                                    </button>
-                                                )}
-                                                {c.estado_pago === "activo" && (
-                                                    <button
-                                                        onClick={() => toggleEstadoPago(c)}
-                                                        className="flex items-center justify-center gap-2 border border-yellow-500/40 text-yellow-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-yellow-500/10 transition-colors"
-                                                    >
-                                                        <Clock size={13} />MARCAR PENDIENTE
-                                                    </button>
-                                                )}
+                                                <a href={`https://wa.me/${c.telefono.replace(/\D/g, "")}?text=${buildContratoClienteMsg(c, pedidoMap[c.id])}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-[#1ebe5d] transition-colors"><SendHorizonal size={13} />ENVIAR AL CLIENTE</a>
+                                                {c.estado_pago === "pendiente" && (<button onClick={() => toggleEstadoPago(c)} className="flex items-center justify-center gap-2 border border-green-500/40 text-green-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-green-500/10 transition-colors"><CheckCircle size={13} />MARCAR COMO PAGADO</button>)}
+                                                {c.estado_pago === "activo" && (<button onClick={() => toggleEstadoPago(c)} className="flex items-center justify-center gap-2 border border-yellow-500/40 text-yellow-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-yellow-500/10 transition-colors"><Clock size={13} />MARCAR PENDIENTE</button>)}
+                                                <button onClick={() => { setTab("envios"); }} className="flex items-center justify-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-bold tracking-wide hover:text-foreground transition-colors"><Truck size={13} />IR A ENVÍOS</button>
                                             </div>
                                         </div>
                                     </div>
@@ -470,22 +591,66 @@ const AdminPage = () => {
                         )}
                     </>
                 )}
+
+                {/* ─── TAB: ENVÍOS ─── */}
+                {tab === "envios" && (
+                    <>
+                        {/* Filtros de estado */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {([
+                                { key: "todos", label: `Todos (${pedidos.length})` },
+                                { key: "en_preparacion", label: `📦 En prep. (${pedidos.filter(p => p.estado === "en_preparacion").length})` },
+                                { key: "pendiente_recogida", label: `⏳ P. recogida (${pedidos.filter(p => p.estado === "pendiente_recogida").length})` },
+                                { key: "recogido", label: `🚚 Recogido (${pedidos.filter(p => p.estado === "recogido").length})` },
+                                { key: "enviado", label: `📬 Enviado (${pedidos.filter(p => p.estado === "enviado").length})` },
+                                { key: "en_ruta", label: `📍 En ruta (${pedidos.filter(p => p.estado === "en_ruta").length})` },
+                                { key: "entregado", label: `✅ Entregado (${pedidos.filter(p => p.estado === "entregado").length})` },
+                                { key: "sin_pedido", label: `❌ Sin pedido (${contratosSinPedido.length})` },
+                            ] as const).map(f => (
+                                <button key={f.key} onClick={() => setFiltroEnvio(f.key as typeof filtroEnvio)}
+                                    className={`px-3 py-1.5 rounded text-xs font-semibold tracking-wide transition-colors border ${filtroEnvio === f.key ? "bg-foreground text-background border-transparent" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {loadingEnvios ? (
+                            <div className="text-center py-16 text-muted-foreground text-sm">Cargando envíos...</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {/* Contratos sin pedido */}
+                                {(filtroEnvio === "todos" || filtroEnvio === "sin_pedido") && contratosSinPedido.map(c => (
+                                    <EnvioRow key={c.id} contrato={c} pedido={null} onPedidoChange={handlePedidoChange} />
+                                ))}
+
+                                {/* Contratos con pedido */}
+                                {filtroEnvio !== "sin_pedido" && (
+                                    filtroEnvio === "todos"
+                                        ? contratosConPedido.map(c => (
+                                            <EnvioRow key={c.id} contrato={c} pedido={pedidoMap[c.id] ?? null} onPedidoChange={handlePedidoChange} />
+                                        ))
+                                        : contratos
+                                            .filter(c => pedidoMap[c.id]?.estado === filtroEnvio)
+                                            .map(c => (
+                                                <EnvioRow key={c.id} contrato={c} pedido={pedidoMap[c.id] ?? null} onPedidoChange={handlePedidoChange} />
+                                            ))
+                                )}
+
+                                {filtroEnvio !== "todos" && filtroEnvio !== "sin_pedido" && filteredEnvios.length === 0 && contratos.filter(c => pedidoMap[c.id]?.estado === filtroEnvio).length === 0 && (
+                                    <div className="text-center py-16"><Package size={32} className="mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground text-sm">No hay pedidos con ese estado</p></div>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
             <FooterSection />
 
-            {/* Modales */}
             {convertingLead && (
-                <ConvertToContractModal
-                    lead={convertingLead}
-                    onClose={() => setConvertingLead(null)}
-                    onConverted={() => { setConvertingLead(null); fetchLeads(); fetchContratos(); }}
-                />
+                <ConvertToContractModal lead={convertingLead} onClose={() => setConvertingLead(null)} onConverted={() => { setConvertingLead(null); fetchLeads(); fetchContratos(); }} />
             )}
             {showCreateContract && (
-                <CreateContractModal
-                    onClose={() => setShowCreateContract(false)}
-                    onCreated={(c) => { setContratos((prev) => [c, ...prev]); }}
-                />
+                <CreateContractModal onClose={() => setShowCreateContract(false)} onCreated={(c) => { setContratos(prev => [c, ...prev]); }} />
             )}
         </div>
     );
