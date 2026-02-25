@@ -36,13 +36,14 @@ const HeroSection = () => {
           Señal satelital donde otros no llegan
         </p>
 
-        <button
+        <Link
+          to="/validar-asesor"
           className="flex items-center gap-2 mt-8 text-foreground text-xs tracking-[0.2em] font-semibold opacity-0 animate-fade-in-up hover:text-muted-foreground transition-colors"
           style={{ animationDelay: "0.8s" }}
         >
-          VER AHORA
+          VALIDAR ASESOR
           <Play size={18} className="fill-foreground" />
-        </button>
+        </Link>
       </div>
 
       {/* Bottom CTA bar */}

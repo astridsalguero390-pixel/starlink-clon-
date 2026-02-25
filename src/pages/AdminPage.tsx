@@ -5,13 +5,38 @@ import FooterSection from "@/components/FooterSection";
 import {
     MessageSquare, RefreshCw, Inbox, Lock, Eye, EyeOff, LogOut,
     FileText, Share2, SendHorizonal, Plus, CheckCircle, Clock,
-    ToggleLeft, ToggleRight, Package, Save, Truck
+    ToggleLeft, ToggleRight, Package, Save, Truck,
+    BadgeCheck, User, Pencil, Trash2, ShieldOff
 } from "lucide-react";
 import ConvertToContractModal from "@/components/ConvertToContractModal";
 import CreateContractModal, { DOMINIOS } from "@/components/CreateContractModal";
 
 type EstadoLead = "nuevo" | "contactado" | "venta" | "descartado";
-type TabAdmin = "leads" | "contratos" | "envios";
+type TabAdmin = "leads" | "contratos" | "envios" | "asesores";
+
+interface Asesor {
+    id: string;
+    codigo_asesor: string;
+    nombre: string;
+    apellido: string;
+    telefono: string;
+    email: string;
+    cargo: string;
+    foto_url?: string;
+    activo: boolean;
+    created_at: string;
+}
+
+const EMPTY_ASESOR: Omit<Asesor, 'id' | 'created_at'> = {
+    codigo_asesor: "",
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    email: "",
+    cargo: "Asesor Comercial",
+    foto_url: "",
+    activo: true,
+};
 type EstadoPedido = Pedido["estado"];
 
 interface Lead {
@@ -340,6 +365,14 @@ const AdminPage = () => {
     // Mapa contrato_id → pedido para la vista por cliente
     const [pedidoMap, setPedidoMap] = useState<Record<string, Pedido>>({});
 
+    // Asesores
+    const [asesores, setAsesores] = useState<Asesor[]>([]);
+    const [loadingAsesores, setLoadingAsesores] = useState(false);
+    const [asesorForm, setAsesorForm] = useState<Omit<Asesor, 'id' | 'created_at'>>(EMPTY_ASESOR);
+    const [editingAsesor, setEditingAsesor] = useState<Asesor | null>(null);
+    const [savingAsesor, setSavingAsesor] = useState(false);
+    const [showAsesorForm, setShowAsesorForm] = useState(false);
+
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => {
             setAuthed(!!data.session);
@@ -376,12 +409,56 @@ const AdminPage = () => {
         setLoadingEnvios(false);
     };
 
+    const fetchAsesores = async () => {
+        setLoadingAsesores(true);
+        const { data } = await supabase.from("asesores").select("*").order("created_at", { ascending: true });
+        if (data) setAsesores(data as Asesor[]);
+        setLoadingAsesores(false);
+    };
+
     useEffect(() => {
         if (!authed) return;
         fetchLeads();
         fetchContratos();
         fetchEnvios();
+        fetchAsesores();
     }, [authed]);
+
+    const handleSaveAsesor = async () => {
+        if (!asesorForm.codigo_asesor || !asesorForm.nombre || !asesorForm.telefono) return;
+        setSavingAsesor(true);
+        if (editingAsesor) {
+            // Update
+            const { data } = await supabase.from("asesores").update(asesorForm).eq("id", editingAsesor.id).select().single();
+            if (data) setAsesores(prev => prev.map(a => a.id === editingAsesor.id ? data as Asesor : a));
+        } else {
+            // Insert
+            const { data } = await supabase.from("asesores").insert(asesorForm).select().single();
+            if (data) setAsesores(prev => [...prev, data as Asesor]);
+        }
+        setSavingAsesor(false);
+        setAsesorForm(EMPTY_ASESOR);
+        setEditingAsesor(null);
+        setShowAsesorForm(false);
+    };
+
+    const handleEditAsesor = (a: Asesor) => {
+        setEditingAsesor(a);
+        setAsesorForm({ codigo_asesor: a.codigo_asesor, nombre: a.nombre, apellido: a.apellido, telefono: a.telefono, email: a.email, cargo: a.cargo, foto_url: a.foto_url ?? "", activo: a.activo });
+        setShowAsesorForm(true);
+    };
+
+    const handleToggleAsesor = async (a: Asesor) => {
+        const activo = !a.activo;
+        await supabase.from("asesores").update({ activo }).eq("id", a.id);
+        setAsesores(prev => prev.map(x => x.id === a.id ? { ...x, activo } : x));
+    };
+
+    const handleDeleteAsesor = async (id: string) => {
+        if (!confirm("¿Eliminar este asesor?")) return;
+        await supabase.from("asesores").delete().eq("id", id);
+        setAsesores(prev => prev.filter(a => a.id !== id));
+    };
 
     const updateEstado = async (id: string, estado: EstadoLead) => {
         await supabase.from("leads").update({ estado }).eq("id", id);
@@ -431,7 +508,7 @@ const AdminPage = () => {
                         <h1 className="text-foreground text-2xl md:text-3xl font-bold tracking-tight">Administración</h1>
                     </div>
                     <div className="flex gap-2 self-start">
-                        <button onClick={() => { fetchLeads(); fetchContratos(); fetchEnvios(); }} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-foreground transition-colors">
+                        <button onClick={() => { fetchLeads(); fetchContratos(); fetchEnvios(); fetchAsesores(); }} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-foreground transition-colors">
                             <RefreshCw size={14} />Actualizar
                         </button>
                         <button onClick={logout} className="flex items-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-red-400 transition-colors">
@@ -446,6 +523,7 @@ const AdminPage = () => {
                         { key: "leads", label: `📋 Solicitudes (${leads.length})` },
                         { key: "contratos", label: `📄 Contratos (${contratos.length})` },
                         { key: "envios", label: `📦 Envíos (${pedidos.length})` },
+                        { key: "asesores", label: `👤 Asesores (${asesores.length})` },
                     ] as const).map(t => (
                         <button key={t.key} onClick={() => setTab(t.key)}
                             className={`px-5 py-2.5 text-sm font-semibold tracking-wide border-b-2 transition-colors -mb-px whitespace-nowrap ${tab === t.key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
@@ -639,6 +717,157 @@ const AdminPage = () => {
                                 {filtroEnvio !== "todos" && filtroEnvio !== "sin_pedido" && filteredEnvios.length === 0 && contratos.filter(c => pedidoMap[c.id]?.estado === filtroEnvio).length === 0 && (
                                     <div className="text-center py-16"><Package size={32} className="mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground text-sm">No hay pedidos con ese estado</p></div>
                                 )}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ─── TAB: ASESORES ─── */}
+                {tab === "asesores" && (
+                    <>
+                        {/* Subheader */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                            <p className="text-muted-foreground text-xs">
+                                Los clientes pueden verificar a tus asesores en <span className="text-foreground font-mono">/validar-asesor</span>
+                            </p>
+                            <button
+                                onClick={() => { setAsesorForm(EMPTY_ASESOR); setEditingAsesor(null); setShowAsesorForm(true); }}
+                                className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded text-xs font-bold tracking-widest hover:bg-foreground/90 transition-colors shrink-0"
+                            >
+                                <Plus size={14} />AGREGAR ASESOR
+                            </button>
+                        </div>
+
+                        {/* Formulario crear/editar */}
+                        {showAsesorForm && (
+                            <div className="bg-card border border-border rounded-lg p-5 mb-5">
+                                <p className="text-foreground text-xs font-bold tracking-widest uppercase mb-4">
+                                    {editingAsesor ? `✏️ Editando: ${editingAsesor.nombre}` : "➕ Nuevo Asesor"}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {([
+                                        { key: "codigo_asesor", label: "ID / Código *", placeholder: "ASR-001" },
+                                        { key: "nombre", label: "Nombre *", placeholder: "Carlos" },
+                                        { key: "apellido", label: "Apellido", placeholder: "Martínez" },
+                                        { key: "telefono", label: "Telef. WhatsApp *", placeholder: "+593999111222" },
+                                        { key: "email", label: "Email", placeholder: "carlos@email.com" },
+                                        { key: "cargo", label: "Cargo", placeholder: "Asesor Comercial" },
+                                        { key: "foto_url", label: "URL de foto", placeholder: "https://..." },
+                                    ] as const).map(field => (
+                                        <div key={field.key} className={field.key === "foto_url" ? "sm:col-span-2" : ""}>
+                                            <label className="block text-muted-foreground text-xs mb-1 tracking-wider uppercase">{field.label}</label>
+                                            <input
+                                                value={(asesorForm as Record<string, string | boolean>)[field.key] as string ?? ""}
+                                                onChange={e => setAsesorForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                placeholder={field.placeholder}
+                                                className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-xs outline-none focus:border-foreground/30 transition-colors"
+                                            />
+                                        </div>
+                                    ))}
+                                    {/* Activo toggle */}
+                                    <div className="sm:col-span-2 flex items-center gap-3">
+                                        <label className="text-muted-foreground text-xs tracking-wider uppercase">Estado:</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAsesorForm(prev => ({ ...prev, activo: !prev.activo }))}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold border transition-all ${asesorForm.activo
+                                                    ? "bg-green-500/20 border-green-500/40 text-green-300"
+                                                    : "bg-red-500/20 border-red-500/40 text-red-300"
+                                                }`}
+                                        >
+                                            {asesorForm.activo ? <><BadgeCheck size={13} />ACTIVO</> : <><ShieldOff size={13} />INACTIVO</>}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button
+                                        onClick={handleSaveAsesor}
+                                        disabled={savingAsesor}
+                                        className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded text-xs font-bold hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                                    >
+                                        <Save size={13} />{savingAsesor ? "Guardando..." : editingAsesor ? "GUARDAR CAMBIOS" : "CREAR ASESOR"}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowAsesorForm(false); setEditingAsesor(null); setAsesorForm(EMPTY_ASESOR); }}
+                                        className="border border-border text-muted-foreground px-4 py-2 rounded text-xs font-semibold hover:text-foreground transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lista de asesores */}
+                        {loadingAsesores ? (
+                            <div className="text-center py-16 text-muted-foreground text-sm">Cargando asesores...</div>
+                        ) : asesores.length === 0 ? (
+                            <div className="text-center py-16">
+                                <User size={32} className="mx-auto text-muted-foreground mb-3" />
+                                <p className="text-muted-foreground text-sm">No hay asesores aún. Agrega el primero.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {asesores.map(a => (
+                                    <div key={a.id} className="bg-card border border-border rounded-lg p-5">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            {/* Foto + info */}
+                                            <div className="flex items-center gap-4">
+                                                {a.foto_url ? (
+                                                    <img src={a.foto_url} alt={a.nombre} className="w-14 h-14 rounded-full object-cover border-2 border-border shrink-0" />
+                                                ) : (
+                                                    <div className="w-14 h-14 rounded-full bg-foreground/10 border-2 border-border flex items-center justify-center shrink-0">
+                                                        <User size={24} className="text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-foreground font-bold text-sm">{a.nombre} {a.apellido}</p>
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${a.activo
+                                                                ? "bg-green-500/20 text-green-300 border-green-500/30"
+                                                                : "bg-red-500/20 text-red-300 border-red-500/30"
+                                                            }`}>
+                                                            {a.activo ? "✅ ACTIVO" : "🔴 INACTIVO"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-muted-foreground text-xs mt-0.5">{a.cargo}</p>
+                                                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                                                        <span className="bg-foreground/10 border border-foreground/20 text-foreground text-[11px] px-2 py-0.5 rounded font-mono">
+                                                            ID: {a.codigo_asesor}
+                                                        </span>
+                                                        <span>📱 {a.telefono}</span>
+                                                        {a.email && <span>✉️ {a.email}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => handleToggleAsesor(a)}
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border transition-all ${a.activo
+                                                            ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
+                                                            : "border-green-500/40 text-green-400 hover:bg-green-500/10"
+                                                        }`}
+                                                    title={a.activo ? "Desactivar" : "Activar"}
+                                                >
+                                                    {a.activo ? <><ShieldOff size={13} />Desactivar</> : <><BadgeCheck size={13} />Activar</>}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEditAsesor(a)}
+                                                    className="flex items-center gap-1.5 border border-border text-muted-foreground px-3 py-1.5 rounded text-xs font-bold hover:text-foreground transition-colors"
+                                                >
+                                                    <Pencil size={13} />Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteAsesor(a.id)}
+                                                    className="flex items-center gap-1.5 border border-red-500/30 text-red-400 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-500/10 transition-colors"
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </>

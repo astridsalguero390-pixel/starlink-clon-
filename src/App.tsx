@@ -11,6 +11,7 @@ import VerificarContratoPage from "./pages/VerificarContratoPage";
 import EstadoPedidoPage from "./pages/EstadoPedidoPage";
 import CoberturaPage from "./pages/CoberturaPage";
 import AdminPage from "./pages/AdminPage";
+import ValidarAsesorPage from "./pages/ValidarAsesorPage";
 import { CountryProvider } from "./components/CountryContext";
 import SocialProof from "./components/SocialProof";
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/estado-pedido" element={<EstadoPedidoPage />} />
             <Route path="/cobertura" element={<CoberturaPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/validar-asesor" element={<ValidarAsesorPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
