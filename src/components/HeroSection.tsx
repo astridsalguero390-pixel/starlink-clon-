@@ -36,14 +36,22 @@ const HeroSection = () => {
           Señal satelital donde otros no llegan
         </p>
 
-        <Link
-          to="/validar-asesor"
-          className="flex items-center gap-2 mt-8 text-foreground text-xs tracking-[0.2em] font-semibold opacity-0 animate-fade-in-up hover:text-muted-foreground transition-colors"
-          style={{ animationDelay: "0.8s" }}
-        >
-          VALIDAR ASESOR
-          <Play size={18} className="fill-foreground" />
-        </Link>
+        <div className="flex flex-wrap gap-4 mt-8 opacity-0 animate-fade-in-up" style={{ animationDelay: "0.8s" }}>
+          <Link
+            to="/validar-asesor"
+            className="flex items-center gap-2 text-foreground text-xs tracking-[0.2em] font-semibold hover:text-muted-foreground transition-colors"
+          >
+            VALIDAR ASESOR
+            <Play size={18} className="fill-foreground underline" />
+          </Link>
+          <Link
+            to="/pagar-factura"
+            className="flex items-center gap-2 text-foreground text-xs tracking-[0.2em] border border-foreground/30 px-4 py-2 rounded-full font-semibold hover:bg-foreground/10 transition-colors"
+          >
+            PAGAR FACTURA
+            <Play size={18} className="fill-foreground ml-1" />
+          </Link>
+        </div>
       </div>
 
       {/* Bottom CTA bar */}

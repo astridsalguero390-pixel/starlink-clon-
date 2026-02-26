@@ -5,14 +5,15 @@ import FooterSection from "@/components/FooterSection";
 import {
     MessageSquare, RefreshCw, Inbox, Lock, Eye, EyeOff, LogOut,
     FileText, Share2, SendHorizonal, Plus, CheckCircle, Clock,
-    ToggleLeft, ToggleRight, Package, Save, Truck,
-    BadgeCheck, User, Pencil, Trash2, ShieldOff
+    ToggleLeft, ToggleRight, Package, Save, Truck, CreditCard,
+    BadgeCheck, User, Pencil, Trash2, ShieldOff, AlertCircle, ExternalLink
 } from "lucide-react";
 import ConvertToContractModal from "@/components/ConvertToContractModal";
 import CreateContractModal, { DOMINIOS } from "@/components/CreateContractModal";
+import { toast } from "sonner";
 
 type EstadoLead = "nuevo" | "contactado" | "venta" | "descartado";
-type TabAdmin = "leads" | "contratos" | "envios" | "asesores";
+type TabAdmin = "leads" | "contratos" | "envios" | "asesores" | "facturas" | "metodos_pago";
 
 interface Asesor {
     id: string;
@@ -35,6 +36,55 @@ const EMPTY_ASESOR: Omit<Asesor, 'id' | 'created_at'> = {
     email: "",
     cargo: "Asesor Comercial",
     foto_url: "",
+    activo: true,
+};
+
+interface Factura {
+    id: string;
+    numero_documento: string;
+    nombre_cliente: string;
+    telefono_cliente: string;
+    pais: string;
+    plan_seleccionado: string;
+    monto: number;
+    estado: 'pendiente' | 'pagado' | 'verificando' | 'rechazado';
+    comprobante_url?: string;
+    created_at: string;
+}
+
+const EMPTY_FACTURA: Omit<Factura, 'id' | 'created_at'> = {
+    numero_documento: "",
+    nombre_cliente: "",
+    telefono_cliente: "",
+    pais: "HN",
+    plan_seleccionado: "",
+    monto: 0,
+    estado: "pendiente",
+};
+
+interface MetodoPago {
+    id: string;
+    pais: string;
+    banco: string;
+    titular: string;
+    numero_cuenta: string;
+    cci?: string;
+    tipo_cuenta: string;
+    documento_titular?: string;
+    qr_url?: string;
+    activo: boolean;
+    created_at: string;
+}
+
+const EMPTY_METODO: Omit<MetodoPago, 'id' | 'created_at'> = {
+    pais: "HN",
+    banco: "",
+    titular: "",
+    numero_cuenta: "",
+    cci: "",
+    tipo_cuenta: "Ahorro",
+    documento_titular: "",
+    qr_url: "",
     activo: true,
 };
 type EstadoPedido = Pedido["estado"];
@@ -373,10 +423,32 @@ const AdminPage = () => {
     const [savingAsesor, setSavingAsesor] = useState(false);
     const [showAsesorForm, setShowAsesorForm] = useState(false);
 
+    // Facturas
+    const [facturas, setFacturas] = useState<Factura[]>([]);
+    const [loadingFacturas, setLoadingFacturas] = useState(false);
+    const [facturaForm, setFacturaForm] = useState<Omit<Factura, 'id' | 'created_at'>>(EMPTY_FACTURA);
+    const [editingFactura, setEditingFactura] = useState<Factura | null>(null);
+    const [showFacturaForm, setShowFacturaForm] = useState(false);
+
+    // Métodos de Pago
+    const [metodosAdmin, setMetodosAdmin] = useState<MetodoPago[]>([]);
+    const [loadingMetodos, setLoadingMetodos] = useState(false);
+    const [metodoForm, setMetodoForm] = useState<Omit<MetodoPago, 'id' | 'created_at'>>(EMPTY_METODO);
+    const [editingMetodo, setEditingMetodo] = useState<MetodoPago | null>(null);
+    const [showMetodoForm, setShowMetodoForm] = useState(false);
+
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => {
             setAuthed(!!data.session);
             setChecking(false);
+            if (data.session) {
+                fetchLeads();
+                fetchContratos();
+                fetchEnvios();
+                fetchAsesores();
+                fetchFacturas();
+                fetchMetodosAdmin();
+            }
         });
     }, []);
 
@@ -396,17 +468,29 @@ const AdminPage = () => {
 
     const fetchEnvios = async () => {
         setLoadingEnvios(true);
-        // Load all pedidos with their contratos
         const { data: ped } = await supabase.from("pedidos").select("*").order("updated_at", { ascending: false });
         const { data: cont } = await supabase.from("contratos").select("*");
         if (ped && cont) {
             const contratoById = Object.fromEntries((cont as Contrato[]).map(c => [c.id, c]));
             const enriched = (ped as Pedido[]).map(p => ({ ...p, contrato: contratoById[p.contrato_id] }));
             setPedidos(enriched);
-            const map = Object.fromEntries((ped as Pedido[]).map(p => [p.contrato_id, p]));
-            setPedidoMap(map);
+            setPedidoMap(Object.fromEntries((ped as Pedido[]).map(p => [p.contrato_id, p])));
         }
         setLoadingEnvios(false);
+    };
+
+    const fetchFacturas = async () => {
+        setLoadingFacturas(true);
+        const { data } = await supabase.from("facturas").select("*").order("created_at", { ascending: false });
+        if (data) setFacturas(data as Factura[]);
+        setLoadingFacturas(false);
+    };
+
+    const fetchMetodosAdmin = async () => {
+        setLoadingMetodos(true);
+        const { data } = await supabase.from("metodos_pago").select("*").order("pais");
+        if (data) setMetodosAdmin(data as MetodoPago[]);
+        setLoadingMetodos(false);
     };
 
     const fetchAsesores = async () => {
@@ -416,12 +500,42 @@ const AdminPage = () => {
         setLoadingAsesores(false);
     };
 
+    const handleSaveFactura = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const { error } = editingFactura
+            ? await supabase.from("facturas").update(facturaForm).eq("id", editingFactura.id)
+            : await supabase.from("facturas").insert([facturaForm]);
+        if (!error) {
+            toast.success(editingFactura ? "Factura actualizada" : "Factura creada");
+            setShowFacturaForm(false);
+            setFacturaForm(EMPTY_FACTURA);
+            setEditingFactura(null);
+            fetchFacturas();
+        } else { toast.error("Error al guardar factura"); }
+    };
+
+    const handleSaveMetodo = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const { error } = editingMetodo
+            ? await supabase.from("metodos_pago").update(metodoForm).eq("id", editingMetodo.id)
+            : await supabase.from("metodos_pago").insert([metodoForm]);
+        if (!error) {
+            toast.success("Método de pago guardado");
+            setShowMetodoForm(false);
+            setMetodoForm(EMPTY_METODO);
+            setEditingMetodo(null);
+            fetchMetodosAdmin();
+        } else { toast.error("Error al guardar método"); }
+    };
+
     useEffect(() => {
         if (!authed) return;
         fetchLeads();
         fetchContratos();
         fetchEnvios();
         fetchAsesores();
+        fetchFacturas();
+        fetchMetodosAdmin();
     }, [authed]);
 
     const handleSaveAsesor = async () => {
@@ -524,6 +638,8 @@ const AdminPage = () => {
                         { key: "contratos", label: `📄 Contratos (${contratos.length})` },
                         { key: "envios", label: `📦 Envíos (${pedidos.length})` },
                         { key: "asesores", label: `👤 Asesores (${asesores.length})` },
+                        { key: "facturas", label: `🧾 Facturas (${facturas.length})` },
+                        { key: "metodos_pago", label: `💳 Métodos Pago (${metodosAdmin.length})` },
                     ] as const).map(t => (
                         <button key={t.key} onClick={() => setTab(t.key)}
                             className={`px-5 py-2.5 text-sm font-semibold tracking-wide border-b-2 transition-colors -mb-px whitespace-nowrap ${tab === t.key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
@@ -771,8 +887,8 @@ const AdminPage = () => {
                                             type="button"
                                             onClick={() => setAsesorForm(prev => ({ ...prev, activo: !prev.activo }))}
                                             className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold border transition-all ${asesorForm.activo
-                                                    ? "bg-green-500/20 border-green-500/40 text-green-300"
-                                                    : "bg-red-500/20 border-red-500/40 text-red-300"
+                                                ? "bg-green-500/20 border-green-500/40 text-green-300"
+                                                : "bg-red-500/20 border-red-500/40 text-red-300"
                                                 }`}
                                         >
                                             {asesorForm.activo ? <><BadgeCheck size={13} />ACTIVO</> : <><ShieldOff size={13} />INACTIVO</>}
@@ -823,8 +939,8 @@ const AdminPage = () => {
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <p className="text-foreground font-bold text-sm">{a.nombre} {a.apellido}</p>
                                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${a.activo
-                                                                ? "bg-green-500/20 text-green-300 border-green-500/30"
-                                                                : "bg-red-500/20 text-red-300 border-red-500/30"
+                                                            ? "bg-green-500/20 text-green-300 border-green-500/30"
+                                                            : "bg-red-500/20 text-red-300 border-red-500/30"
                                                             }`}>
                                                             {a.activo ? "✅ ACTIVO" : "🔴 INACTIVO"}
                                                         </span>
@@ -845,8 +961,8 @@ const AdminPage = () => {
                                                 <button
                                                     onClick={() => handleToggleAsesor(a)}
                                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border transition-all ${a.activo
-                                                            ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
-                                                            : "border-green-500/40 text-green-400 hover:bg-green-500/10"
+                                                        ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
+                                                        : "border-green-500/40 text-green-400 hover:bg-green-500/10"
                                                         }`}
                                                     title={a.activo ? "Desactivar" : "Activar"}
                                                 >
@@ -868,6 +984,198 @@ const AdminPage = () => {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {tab === "facturas" && (
+                    <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase mb-1">🧾 Gestión de Cobros</p>
+                                <h1 className="text-foreground text-2xl font-bold tracking-tight">Facturas</h1>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => { setEditingFactura(null); setFacturaForm(EMPTY_FACTURA); setShowFacturaForm(true); }} className="bg-foreground text-background px-4 py-2 rounded text-xs font-bold uppercase hover:bg-foreground/90 transition-colors flex items-center gap-2">
+                                    <Plus size={14} /> NUEVA FACTURA
+                                </button>
+                                <button onClick={fetchFacturas} className="border border-border text-muted-foreground p-2 rounded hover:text-foreground transition-colors">
+                                    <RefreshCw size={14} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {loadingFacturas ? <div className="text-center py-20 text-muted-foreground italic">Cargando facturas...</div> : (
+                            <div className="space-y-3">
+                                {facturas.map(f => (
+                                    <div key={f.id} className="bg-card border border-border rounded-xl p-5">
+                                        <div className="flex flex-col md:flex-row justify-between gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${f.estado === 'pagado' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                                                            f.estado === 'verificando' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                                'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                                                        }`}>{f.estado}</span>
+                                                    <span className="text-[10px] text-muted-foreground font-bold">{paisLabel[f.pais]}</span>
+                                                </div>
+                                                <h3 className="text-foreground font-bold">{f.nombre_cliente}</h3>
+                                                <p className="text-muted-foreground text-xs">{f.numero_documento} · {f.plan_seleccionado}</p>
+                                            </div>
+                                            <div className="flex md:flex-col items-end gap-2 shrink-0">
+                                                <p className="text-foreground font-bold text-xl">{f.pais === 'HN' ? 'L' : f.pais === 'PE' ? 'S/.' : '$'} {f.monto}</p>
+                                                <div className="flex gap-2">
+                                                    {f.comprobante_url && (
+                                                        <a href={f.comprobante_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20"><ExternalLink size={16} /></a>
+                                                    )}
+                                                    <button onClick={() => { setEditingFactura(f); setFacturaForm(f); setShowFacturaForm(true); }} className="p-2 bg-foreground/10 text-muted-foreground rounded-lg hover:text-foreground"><Pencil size={16} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {facturas.length === 0 && <div className="text-center py-20 border border-dashed border-border rounded-xl text-muted-foreground">No hay facturas</div>}
+                            </div>
+                        )}
+
+                        {showFacturaForm && (
+                            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-card border border-border rounded-2xl w-full max-w-md p-8 shadow-2xl">
+                                    <h2 className="text-xl font-bold mb-6">{editingFactura ? 'Editar Factura' : 'Crear Factura'}</h2>
+                                    <form onSubmit={handleSaveFactura} className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Cliente</label>
+                                            <input required value={facturaForm.nombre_cliente} onChange={e => setFacturaForm({ ...facturaForm, nombre_cliente: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="Nombre completo" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">ID / Cédula</label>
+                                                <input required value={facturaForm.numero_documento} onChange={e => setFacturaForm({ ...facturaForm, numero_documento: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">País</label>
+                                                <select value={facturaForm.pais} onChange={e => setFacturaForm({ ...facturaForm, pais: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none">
+                                                    <option value="HN">Honduras</option>
+                                                    <option value="EC">Ecuador</option>
+                                                    <option value="PE">Perú</option>
+                                                    <option value="CO">Colombia</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Plan</label>
+                                            <input required value={facturaForm.plan_seleccionado} onChange={e => setFacturaForm({ ...facturaForm, plan_seleccionado: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="Ej: Plan 6 meses" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Monto</label>
+                                                <input required type="number" step="0.01" value={facturaForm.monto} onChange={e => setFacturaForm({ ...facturaForm, monto: parseFloat(e.target.value) })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Estado</label>
+                                                <select value={facturaForm.estado} onChange={e => setFacturaForm({ ...facturaForm, estado: e.target.value as any })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none">
+                                                    <option value="pendiente">Pendiente</option>
+                                                    <option value="verificando">Verificando</option>
+                                                    <option value="pagado">Pagado</option>
+                                                    <option value="rechazado">Rechazado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 pt-4">
+                                            <button type="submit" className="flex-1 bg-foreground text-background py-2 rounded text-xs font-bold uppercase hover:bg-foreground/90 transition-colors">GUARDAR</button>
+                                            <button type="button" onClick={() => setShowFacturaForm(false)} className="px-4 py-2 border border-border rounded text-xs font-semibold text-muted-foreground hover:text-foreground">Cerrar</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {tab === "metodos_pago" && (
+                    <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <p className="text-muted-foreground text-xs font-bold tracking-[0.3em] uppercase mb-1">💳 Configuración Bancaria</p>
+                                <h1 className="text-foreground text-2xl font-bold tracking-tight">Métodos de Pago</h1>
+                            </div>
+                            <button onClick={() => { setEditingMetodo(null); setMetodoForm(EMPTY_METODO); setShowMetodoForm(true); }} className="bg-foreground text-background px-4 py-2 rounded text-xs font-bold uppercase hover:bg-foreground/90 transition-colors flex items-center gap-2">
+                                <Plus size={14} /> NUEVA CUENTA
+                            </button>
+                        </div>
+
+                        {loadingMetodos ? <div className="text-center py-20 text-muted-foreground italic">Cargando métodos...</div> : (
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                {metodosAdmin.map(m => (
+                                    <div key={m.id} className="bg-card border border-border rounded-xl p-5 relative overflow-hidden">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <span className="text-[10px] text-muted-foreground font-bold block">{paisLabel[m.pais]}</span>
+                                                <h3 className="text-foreground font-bold text-lg">{m.banco}</h3>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => { setEditingMetodo(m); setMetodoForm(m); setShowMetodoForm(true); }} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={14} /></button>
+                                                <button onClick={async () => { if (confirm('¿Eliminar?')) { await supabase.from('metodos_pago').delete().eq('id', m.id); fetchMetodosAdmin(); } }} className="p-1.5 text-red-400 group-hover:text-red-400 hover:text-red-400"><Trash2 size={14} /></button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1 text-xs">
+                                            <p className="text-muted-foreground">Cuenta: <span className="text-foreground font-mono">{m.numero_cuenta}</span></p>
+                                            <p className="text-muted-foreground">Titular: <span className="text-foreground">{m.titular}</span></p>
+                                            {m.cci && <p className="text-muted-foreground">CCI: <span className="text-foreground font-mono">{m.cci}</span></p>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {showMetodoForm && (
+                            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                                <div className="bg-card border border-border rounded-2xl w-full max-w-md p-8 shadow-2xl">
+                                    <h2 className="text-xl font-bold mb-6">{editingMetodo ? 'Editar Cuenta' : 'Nueva Cuenta'}</h2>
+                                    <form onSubmit={handleSaveMetodo} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">País</label>
+                                                <select value={metodoForm.pais} onChange={e => setMetodoForm({ ...metodoForm, pais: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none">
+                                                    <option value="HN">Honduras</option>
+                                                    <option value="EC">Ecuador</option>
+                                                    <option value="PE">Perú</option>
+                                                    <option value="CO">Colombia</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Banco</label>
+                                                <input required value={metodoForm.banco} onChange={e => setMetodoForm({ ...metodoForm, banco: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Titular</label>
+                                            <input required value={metodoForm.titular} onChange={e => setMetodoForm({ ...metodoForm, titular: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Número de Cuenta</label>
+                                            <input required value={metodoForm.numero_cuenta} onChange={e => setMetodoForm({ ...metodoForm, numero_cuenta: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Tipo Cuenta</label>
+                                                <input value={metodoForm.tipo_cuenta} onChange={e => setMetodoForm({ ...metodoForm, tipo_cuenta: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="Ahorro" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">CCI (Si aplica)</label>
+                                                <input value={metodoForm.cci} onChange={e => setMetodoForm({ ...metodoForm, cci: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">QR URL (Opcional)</label>
+                                            <input value={metodoForm.qr_url} onChange={e => setMetodoForm({ ...metodoForm, qr_url: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="https://..." />
+                                        </div>
+                                        <div className="flex gap-2 pt-4">
+                                            <button type="submit" className="flex-1 bg-foreground text-background py-2 rounded text-xs font-bold uppercase hover:bg-foreground/90 transition-colors">GUARDAR</button>
+                                            <button type="button" onClick={() => setShowMetodoForm(false)} className="px-4 py-2 border border-border rounded text-xs font-semibold text-muted-foreground hover:text-foreground">Cerrar</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         )}
                     </>

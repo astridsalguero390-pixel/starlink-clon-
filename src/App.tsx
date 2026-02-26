@@ -12,6 +12,7 @@ import EstadoPedidoPage from "./pages/EstadoPedidoPage";
 import CoberturaPage from "./pages/CoberturaPage";
 import AdminPage from "./pages/AdminPage";
 import ValidarAsesorPage from "./pages/ValidarAsesorPage";
+import PagarFacturaPage from "./pages/PagarFacturaPage";
 import { CountryProvider } from "./components/CountryContext";
 import SocialProof from "./components/SocialProof";
 import ScrollToTop from "./components/ScrollToTop";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/cobertura" element={<CoberturaPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/validar-asesor" element={<ValidarAsesorPage />} />
+            <Route path="/pagar-factura" element={<PagarFacturaPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
