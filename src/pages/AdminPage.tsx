@@ -514,6 +514,15 @@ const AdminPage = () => {
         } else { toast.error("Error al guardar factura"); }
     };
 
+    const handleDeleteFactura = async (id: string) => {
+        if (!confirm("¿Eliminar esta factura?")) return;
+        const { error } = await supabase.from("facturas").delete().eq("id", id);
+        if (!error) {
+            toast.success("Factura eliminada");
+            fetchFacturas();
+        } else { toast.error("Error al eliminar factura"); }
+    };
+
     const handleSaveMetodo = async (e: React.FormEvent) => {
         e.preventDefault();
         const { error } = editingMetodo
@@ -577,6 +586,24 @@ const AdminPage = () => {
     const updateEstado = async (id: string, estado: EstadoLead) => {
         await supabase.from("leads").update({ estado }).eq("id", id);
         setLeads((prev) => prev.map((l) => l.id === id ? { ...l, estado } : l));
+    };
+
+    const handleDeleteLead = async (id: string) => {
+        if (!confirm("¿Eliminar este lead de forma permanente?")) return;
+        const { error } = await supabase.from("leads").delete().eq("id", id);
+        if (!error) {
+            toast.success("Lead eliminado");
+            fetchLeads();
+        } else { toast.error("Error al eliminar lead"); }
+    };
+
+    const handleDeleteContrato = async (id: string) => {
+        if (!confirm("¿Eliminar este contrato? Esto no eliminará el pedido asociado si existe.")) return;
+        const { error } = await supabase.from("contratos").delete().eq("id", id);
+        if (!error) {
+            toast.success("Contrato eliminado");
+            fetchContratos();
+        } else { toast.error("Error al eliminar contrato"); }
     };
 
     const toggleEstadoPago = async (c: Contrato) => {
@@ -706,6 +733,12 @@ const AdminPage = () => {
                                                     <option value="venta">🟢 Venta confirmada</option>
                                                     <option value="descartado">🔴 Descartado</option>
                                                 </select>
+                                                <button
+                                                    onClick={() => handleDeleteLead(lead.id)}
+                                                    className="flex items-center justify-center gap-2 border border-red-500/30 text-red-400 px-4 py-2.5 rounded text-xs font-bold tracking-wide hover:bg-red-500/10 transition-colors"
+                                                >
+                                                    <Trash2 size={13} /> ELIMINAR LEAD
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -777,6 +810,7 @@ const AdminPage = () => {
                                                 {c.estado_pago === "pendiente" && (<button onClick={() => toggleEstadoPago(c)} className="flex items-center justify-center gap-2 border border-green-500/40 text-green-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-green-500/10 transition-colors"><CheckCircle size={13} />MARCAR COMO PAGADO</button>)}
                                                 {c.estado_pago === "activo" && (<button onClick={() => toggleEstadoPago(c)} className="flex items-center justify-center gap-2 border border-yellow-500/40 text-yellow-400 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-yellow-500/10 transition-colors"><Clock size={13} />MARCAR PENDIENTE</button>)}
                                                 <button onClick={() => { setTab("envios"); }} className="flex items-center justify-center gap-2 border border-border text-muted-foreground px-4 py-2 rounded text-xs font-bold tracking-wide hover:text-foreground transition-colors"><Truck size={13} />IR A ENVÍOS</button>
+                                                <button onClick={() => handleDeleteContrato(c.id)} className="flex items-center justify-center gap-2 border border-red-500/30 text-red-500 px-4 py-2 rounded text-xs font-bold tracking-wide hover:bg-red-500/10 transition-colors"><Trash2 size={13} />ELIMINAR</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1014,8 +1048,8 @@ const AdminPage = () => {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${f.estado === 'pagado' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                                                            f.estado === 'verificando' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                                                                'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                                                        f.estado === 'verificando' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                                            'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
                                                         }`}>{f.estado}</span>
                                                     <span className="text-[10px] text-muted-foreground font-bold">{paisLabel[f.pais]}</span>
                                                 </div>
@@ -1029,6 +1063,7 @@ const AdminPage = () => {
                                                         <a href={f.comprobante_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20"><ExternalLink size={16} /></a>
                                                     )}
                                                     <button onClick={() => { setEditingFactura(f); setFacturaForm(f); setShowFacturaForm(true); }} className="p-2 bg-foreground/10 text-muted-foreground rounded-lg hover:text-foreground"><Pencil size={16} /></button>
+                                                    <button onClick={() => handleDeleteFactura(f.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20"><Trash2 size={16} /></button>
                                                 </div>
                                             </div>
                                         </div>
