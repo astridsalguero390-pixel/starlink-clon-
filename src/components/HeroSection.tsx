@@ -55,8 +55,8 @@ const HeroSection = () => {
       </div>
 
       {/* Bottom CTA bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/95 to-transparent pt-32 pb-8 pointer-events-auto">
-        <div className="max-w-3xl mx-auto px-6">
+      <div className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-background via-background/95 to-transparent pt-32 pb-8 pointer-events-none">
+        <div className="max-w-3xl mx-auto px-6 pointer-events-auto">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
 
             {/* COMPRAR SERVICIO */}
