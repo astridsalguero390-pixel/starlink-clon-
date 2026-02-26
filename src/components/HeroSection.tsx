@@ -17,7 +17,7 @@ const HeroSection = () => {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+      <div className="relative z-30 flex flex-col items-center justify-center h-full px-6 text-center pb-20 sm:pb-0">
         <h1
           className="text-foreground text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight opacity-0 animate-fade-in-up"
           style={{ animationDelay: "0.2s" }}
@@ -36,27 +36,27 @@ const HeroSection = () => {
           Señal satelital donde otros no llegan
         </p>
 
-        <div className="flex flex-wrap gap-4 mt-8 opacity-0 animate-fade-in-up" style={{ animationDelay: "0.8s" }}>
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 opacity-0 animate-fade-in-up" style={{ animationDelay: "0.8s" }}>
           <Link
             to="/validar-asesor"
-            className="flex items-center gap-2 text-foreground text-xs tracking-[0.2em] font-semibold hover:text-muted-foreground transition-colors"
+            className="flex items-center gap-2 text-foreground text-[10px] sm:text-xs tracking-[0.2em] font-semibold hover:text-muted-foreground transition-colors group"
           >
             VALIDAR ASESOR
-            <Play size={18} className="fill-foreground underline" />
+            <Play size={16} className="fill-foreground transition-transform group-hover:scale-110" />
           </Link>
           <Link
             to="/pagar-factura"
-            className="flex items-center gap-2 text-foreground text-xs tracking-[0.2em] border border-foreground/30 px-4 py-2 rounded-full font-semibold hover:bg-foreground/10 transition-colors"
+            className="flex items-center gap-2 text-foreground text-[10px] sm:text-xs tracking-[0.2em] border border-foreground/30 px-5 py-2.5 rounded-full font-semibold hover:bg-foreground/10 transition-all hover:border-foreground"
           >
             PAGAR FACTURA
-            <Play size={18} className="fill-foreground ml-1" />
+            <Play size={16} className="fill-foreground ml-1" />
           </Link>
         </div>
       </div>
 
       {/* Bottom CTA bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-background via-background/90 to-transparent pt-20 pb-8">
-        <div className="max-w-2xl mx-auto px-6">
+      <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-background via-background/95 to-transparent pt-32 pb-8">
+        <div className="max-w-3xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
 
             {/* COMPRAR SERVICIO */}
