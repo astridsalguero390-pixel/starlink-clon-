@@ -210,8 +210,8 @@ const PagarFacturaPage = () => {
                                                     key={m.id}
                                                     onClick={() => setSelectedMetodo(m)}
                                                     className={`p-6 rounded-2xl border-2 transition-all text-left ${selectedMetodo?.id === m.id
-                                                            ? "border-foreground bg-foreground/5"
-                                                            : "border-border bg-card hover:border-foreground/30"
+                                                        ? "border-foreground bg-foreground/5"
+                                                        : "border-border bg-card hover:border-foreground/30"
                                                         }`}
                                                 >
                                                     <p className="text-foreground font-bold text-lg mb-1">{m.banco}</p>
@@ -264,15 +264,17 @@ const PagarFacturaPage = () => {
                                                 </div>
 
                                                 {(selectedMetodo.qr_url || (selectedMetodo.banco.toLowerCase().includes('yape') && !selectedMetodo.qr_url)) && (
-                                                    <div className="flex flex-col items-center gap-3">
-                                                        <div className="bg-white p-3 rounded-2xl shadow-xl">
+                                                    <div className="flex flex-col items-center gap-4 w-full md:w-auto">
+                                                        <div className="bg-white p-4 rounded-3xl shadow-2xl border-4 border-white/20">
                                                             <img
                                                                 src={selectedMetodo.qr_url ?? "/assets/qr/yape-peru.png"}
                                                                 alt="QR Pago"
-                                                                className="w-40 h-40 object-contain rounded-lg"
+                                                                className="w-64 h-64 md:w-80 md:h-80 object-contain rounded-xl"
                                                             />
                                                         </div>
-                                                        <p className="text-[10px] font-bold tracking-widest uppercase opacity-70">Escanea para pagar</p>
+                                                        <div className="bg-background/20 px-4 py-2 rounded-full backdrop-blur-md">
+                                                            <p className="text-xs font-bold tracking-[0.2em] uppercase opacity-90">Escanea para pagar</p>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

@@ -1201,9 +1201,37 @@ const AdminPage = () => {
                                                 <input value={metodoForm.cci} onChange={e => setMetodoForm({ ...metodoForm, cci: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">QR URL (Opcional)</label>
-                                            <input value={metodoForm.qr_url} onChange={e => setMetodoForm({ ...metodoForm, qr_url: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="https://..." />
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Cargar Código QR (Opcional)</label>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        const toastId = toast.loading("Subiendo QR...");
+                                                        try {
+                                                            const fileExt = file.name.split('.').pop();
+                                                            const fileName = `qr_${Math.random()}.${fileExt}`;
+                                                            const filePath = `qr_codes/${fileName}`;
+                                                            const { error: uploadError } = await supabase.storage.from('registros').upload(filePath, file);
+                                                            if (uploadError) throw uploadError;
+                                                            const { data: { publicUrl } } = supabase.storage.from('registros').getPublicUrl(filePath);
+                                                            setMetodoForm({ ...metodoForm, qr_url: publicUrl });
+                                                            toast.success("QR subido correctamente", { id: toastId });
+                                                        } catch (err) {
+                                                            console.error(err);
+                                                            toast.error("Error al subir QR", { id: toastId });
+                                                        }
+                                                    }}
+                                                    className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-foreground outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">O URL de QR Externo</label>
+                                                <input value={metodoForm.qr_url} onChange={e => setMetodoForm({ ...metodoForm, qr_url: e.target.value })} className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground outline-none" placeholder="https://..." />
+                                            </div>
                                         </div>
                                         <div className="flex gap-2 pt-4">
                                             <button type="submit" className="flex-1 bg-foreground text-background py-2 rounded text-xs font-bold uppercase hover:bg-foreground/90 transition-colors">GUARDAR</button>
