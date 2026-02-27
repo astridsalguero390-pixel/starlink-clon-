@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Send } from "lucide-react";
+import { X, Send, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCountryContext, countryNames, countryFlags } from "./CountryContext";
 
@@ -7,7 +7,7 @@ export interface PlanInfo {
     planNombre: string;
     planPrecio: string;
     tipoServicio: "sim" | "antena";
-    direccionPrellenada?: string; // optional: pre-fills address from hero
+    direccionPrellenada?: string;
 }
 
 interface Props {
@@ -15,14 +15,45 @@ interface Props {
     onClose: () => void;
 }
 
+// Country codes per country context
+const COUNTRY_CODES: Record<string, { code: string; example: string }> = {
+    HN: { code: "+504", example: "+504 9999-9999" },
+    PE: { code: "+51", example: "+51 999 999 999" },
+    EC: { code: "+593", example: "+593 99 123 4567" },
+    CO: { code: "+57", example: "+57 300 123 4567" },
+    MX: { code: "+52", example: "+52 55 1234 5678" },
+    BO: { code: "+591", example: "+591 7000-0000" },
+    GT: { code: "+502", example: "+502 5555-5555" },
+    PA: { code: "+507", example: "+507 6000-0000" },
+    SV: { code: "+503", example: "+503 7000-0000" },
+    NI: { code: "+505", example: "+505 8000-0000" },
+    CR: { code: "+506", example: "+506 8888-8888" },
+    DO: { code: "+1", example: "+1 809 000 0000" },
+};
+
+const normalizePhone = (val: string) => val.replace(/\s/g, "").replace(/-/g, "");
+
+const isValidWhatsapp = (val: string, code: string) => {
+    const normalized = normalizePhone(val);
+    // Must start with the country code and have at least 8 digits after it
+    const codeClean = code.replace("+", "");
+    const regex = new RegExp(`^\\+${codeClean}\\d{7,12}$`);
+    return regex.test(normalized);
+};
+
 const AcquirePlanModal = ({ plan, onClose }: Props) => {
     const { country } = useCountryContext();
+    const countryInfo = COUNTRY_CODES[country] ?? { code: "+504", example: "+504 9999-9999" };
+
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [whatsapp, setWhatsapp] = useState(countryInfo.code + " ");
+    const [whatsappConfirm, setWhatsappConfirm] = useState("");
+    const [whatsappError, setWhatsappError] = useState("");
+    const [confirmError, setConfirmError] = useState("");
     const [form, setForm] = useState({
         nombre: "",
         apellido: "",
-        whatsapp: "",
         email: "",
         ciudad: "",
         barrio: "",
@@ -34,14 +65,41 @@ const AcquirePlanModal = ({ plan, onClose }: Props) => {
     const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm((p) => ({ ...p, [k]: e.target.value }));
 
+    const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value;
+        // Ensure the country code prefix stays
+        if (!val.startsWith("+")) val = countryInfo.code + " ";
+        setWhatsapp(val);
+        setWhatsappError("");
+    };
+
+    const handleConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setWhatsappConfirm(e.target.value);
+        setConfirmError("");
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate WhatsApp
+        const normalizedWA = normalizePhone(whatsapp);
+        if (!isValidWhatsapp(whatsapp, countryInfo.code)) {
+            setWhatsappError(`El número debe empezar con ${countryInfo.code} y tener formato válido. Ej: ${countryInfo.example}`);
+            return;
+        }
+
+        const normalizedConfirm = normalizePhone(whatsappConfirm);
+        if (normalizedWA !== normalizedConfirm) {
+            setConfirmError("Los números no coinciden. Verificalos e inténtalo de nuevo.");
+            return;
+        }
+
         setLoading(true);
         const { error } = await supabase.from("leads").insert([
             {
                 nombre: form.nombre,
                 apellido: form.apellido,
-                whatsapp: form.whatsapp,
+                whatsapp: normalizedWA,
                 email: form.email || null,
                 pais: country,
                 ciudad: form.ciudad,
@@ -58,6 +116,9 @@ const AcquirePlanModal = ({ plan, onClose }: Props) => {
         setLoading(false);
         if (!error) setSuccess(true);
     };
+
+    const inputClass = "w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40";
+    const inputErrorClass = "w-full bg-background border border-red-500/60 rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-red-500";
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -97,7 +158,6 @@ const AcquirePlanModal = ({ plan, onClose }: Props) => {
                         </button>
                     </div>
                 ) : (
-                    /* Form */
                     <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
                         {/* Plan summary */}
                         <div className="bg-foreground/5 border border-border rounded-lg px-4 py-3 flex justify-between items-center">
@@ -108,48 +168,88 @@ const AcquirePlanModal = ({ plan, onClose }: Props) => {
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-muted-foreground text-xs mb-1.5">Nombre *</label>
-                                <input required value={form.nombre} onChange={set("nombre")} placeholder="Ej. Juan" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                                <input required value={form.nombre} onChange={set("nombre")} placeholder="Ej. Juan" className={inputClass} />
                             </div>
                             <div>
                                 <label className="block text-muted-foreground text-xs mb-1.5">Apellido *</label>
-                                <input required value={form.apellido} onChange={set("apellido")} placeholder="Ej. Pérez" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                                <input required value={form.apellido} onChange={set("apellido")} placeholder="Ej. Pérez" className={inputClass} />
                             </div>
                         </div>
 
+                        {/* WhatsApp field */}
                         <div>
-                            <label className="block text-muted-foreground text-xs mb-1.5">WhatsApp * <span className="text-muted-foreground/60">(con código de país)</span></label>
-                            <input required value={form.whatsapp} onChange={set("whatsapp")} placeholder="Ej. +593 99 123 4567" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                            <label className="block text-muted-foreground text-xs mb-1.5 flex items-center gap-1">
+                                <Phone size={12} className="text-green-500" />
+                                WhatsApp * <span className="text-muted-foreground/60">(incluye código de país {countryInfo.code})</span>
+                            </label>
+                            <input
+                                required
+                                value={whatsapp}
+                                onChange={handleWhatsappChange}
+                                placeholder={countryInfo.example}
+                                className={whatsappError ? inputErrorClass : inputClass}
+                            />
+                            {whatsappError && (
+                                <p className="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                                    <AlertCircle size={12} /> {whatsappError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* WhatsApp confirmation field */}
+                        <div>
+                            <label className="block text-muted-foreground text-xs mb-1.5 flex items-center gap-1">
+                                <Phone size={12} className="text-green-500" />
+                                Verifica tu número de WhatsApp *
+                            </label>
+                            <input
+                                required
+                                value={whatsappConfirm}
+                                onChange={handleConfirmChange}
+                                placeholder={`Repite: ${countryInfo.example}`}
+                                className={confirmError ? inputErrorClass : inputClass}
+                            />
+                            {confirmError && (
+                                <p className="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                                    <AlertCircle size={12} /> {confirmError}
+                                </p>
+                            )}
+                            {!confirmError && whatsappConfirm && normalizePhone(whatsapp) === normalizePhone(whatsappConfirm) && (
+                                <p className="text-green-500 text-[11px] mt-1.5 flex items-center gap-1">
+                                    <CheckCircle2 size={12} /> ¡Números coinciden!
+                                </p>
+                            )}
                         </div>
 
                         <div>
                             <label className="block text-muted-foreground text-xs mb-1.5">Correo electrónico</label>
-                            <input type="email" value={form.email} onChange={set("email")} placeholder="Ej. juan@correo.com" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                            <input type="email" value={form.email} onChange={set("email")} placeholder="Ej. juan@correo.com" className={inputClass} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-muted-foreground text-xs mb-1.5">Ciudad / Municipio *</label>
-                                <input required value={form.ciudad} onChange={set("ciudad")} placeholder="Ej. Quito" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                                <input required value={form.ciudad} onChange={set("ciudad")} placeholder="Ej. Quito" className={inputClass} />
                             </div>
                             <div>
                                 <label className="block text-muted-foreground text-xs mb-1.5">Barrio / Vereda / Sector</label>
-                                <input value={form.barrio} onChange={set("barrio")} placeholder="Ej. El Bosque / Sector Norte" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                                <input value={form.barrio} onChange={set("barrio")} placeholder="Ej. El Bosque / Sector Norte" className={inputClass} />
                             </div>
                         </div>
 
                         <div>
                             <label className="block text-muted-foreground text-xs mb-1.5">Dirección exacta</label>
-                            <input value={form.direccion} onChange={set("direccion")} placeholder="Calle, número o descripción del lugar" className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                            <input value={form.direccion} onChange={set("direccion")} placeholder="Calle, número o descripción del lugar" className={inputClass} />
                         </div>
 
                         <div>
                             <label className="block text-muted-foreground text-xs mb-1.5">Punto de referencia</label>
-                            <input value={form.referencia} onChange={set("referencia")} placeholder="Frente al colegio, junto a la tienda..." className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40" />
+                            <input value={form.referencia} onChange={set("referencia")} placeholder="Frente al colegio, junto a la tienda..." className={inputClass} />
                         </div>
 
                         <div>
                             <label className="block text-muted-foreground text-xs mb-1.5">Notas adicionales</label>
-                            <textarea value={form.notas} onChange={set("notas")} rows={2} placeholder="Horario preferido, consultas, etc." className="w-full bg-background border border-border rounded px-3 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/50 outline-none focus:border-foreground/40 resize-none" />
+                            <textarea value={form.notas} onChange={set("notas")} rows={2} placeholder="Horario preferido, consultas, etc." className={`${inputClass} resize-none`} />
                         </div>
 
                         <button
